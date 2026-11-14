@@ -191,7 +191,7 @@ frontend/
 - 서버 시작 때 JSON을 Pydantic 모델로 읽어 검증하고, 형식이 틀리면 시작을 실패시킵니다.
 
 ## DB 테이블 (SQLModel)
-`analyses`, `reports`, `photos`, `ai_usage`는 구현했고(`backend/app/models/tables.py`), 나머지는 아직 초안입니다. ID는 UUID 문자열(`VARCHAR(36)`)입니다.
+`analyses`, `reports`, `photos`, `ai_usage`, `cases`, `case_likes`, `case_photos`, `case_drafts`는 구현했고(`backend/app/models/tables.py`), 나머지는 아직 초안입니다. ID는 UUID 문자열(`VARCHAR(36)`)입니다. 이미 만들어진 테이블에는 `create_all`이 컬럼을 추가하지 못하므로, 새 기능은 새 테이블로 추가합니다(신고 건의 `case_id`는 `cases.report_id`로 조회).
 
 | 테이블 | 주요 컬럼 |
 |---|---|
@@ -200,11 +200,12 @@ frontend/
 | `photos` | `id`, `device_id`, `analysis_id`(null 가능), `report_id`(null 가능), `s3_key`(가짜 모드 자리표시 사진은 null), `scene_id`(null 가능), `review_status`(`sufficient`/`insufficient`/`undetermined`/null), `review_message`, `retake_tip`, `taken_order`, `created_at` |
 | `step_progress` | `id`, `report_id`, `step_id`, `done`, `done_at` (미구현. 진행 단계는 `reports.current_step`으로 충분해서 만들지 않았습니다) |
 | `ai_usage` | `id`, `device_id`, `day`(KST 날짜), `count` (`device_id` + `day` 유일 제약) |
-| `cases` | `id`, `report_id`(seed는 null), `type_id`, `title`, `body`, `result`, `district`(구 단위), `month`(예: 2026-11), `like_count`, `is_published`, `created_at` |
+| `cases` | `id`, `report_id`(FK `reports.id`, 유일. seed는 null), `device_id`(공유한 기기. seed는 null), `type_id`, `title`, `sections`(JSON: `[{heading, body}]` 5개), `result_label`("수용", "불수용", "결과 대기 중". seed는 "불수용 → 재신고 수용"도 있음), `district`(구 단위, null 가능), `period`(월 단위 문자열. 예: "2026년 11월"), `like_count`, `is_seed`, `created_at`(공유한 시각) |
 | `case_likes` | `id`, `case_id`, `device_id` (`case_id` + `device_id` 유일 제약) |
-| `case_photos` | `id`, `case_id`, `s3_key` |
+| `case_photos` | `id`, `case_id`, `photo_id`(FK `photos.id`), `position`. S3 키는 `photos`에서 읽습니다 |
+| `case_drafts` | `id`, `report_id`(FK, 유일), `device_id`, `fingerprint`(`status|result|result_reason`), `title`, `sections`(JSON), `result_label`, `district`, `period`, `created_at`. 미리보기에서 만든 글을 저장하고 공유할 때 그대로 씁니다 |
 
 - `status` 값은 화면의 준비 중 / 접수 완료 / 처리 완료에 대응합니다.
 - 사진 테이블에는 URL을 저장하지 않습니다. 응답을 만들 때 `s3_key`로 presigned URL을 만듭니다. 로컬 디스크 구현에서는 `s3_key` 자리에 저장소 내부 키(`photos/{yyyy}/{mm}/{photo_id}.jpg`, `UPLOAD_DIR` 기준 상대 경로)를 넣고 URL은 `GET /api/photos/{photo_id}/file`입니다.
-- `cases`에는 상세 주소, 정확한 날짜, 접수번호 컬럼을 두지 않습니다. 비식별화는 저장 시점에 끝냅니다.
-- 사례 seed(3~4건)는 `app/seed.py`에서 넣고, 이미 있으면 다시 넣지 않습니다.
+- `cases`에는 상세 주소, 정확한 날짜, 접수번호 컬럼을 두지 않습니다. 비식별화는 저장 시점(초안을 만들 때)에 끝냅니다.
+- 사례 seed(3건)는 `app/seed.py`가 `backend/data/seed_cases.json`에서 읽어 넣습니다. 앱이 시작될 때 `cases`가 비어 있으면만 넣습니다.

@@ -10,10 +10,10 @@ import anyio.to_thread
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 
-from app import db
+from app import db, seed
 from app.config import get_settings, is_mock
 from app.errors import ApiError, ErrorCode, register_error_handlers
-from app.routers import analyses, assets, photos, procedures, reports
+from app.routers import analyses, assets, cases, photos, procedures, reports
 from app.services import procedures as procedure_data
 from app.storage import storage_kind
 
@@ -22,7 +22,9 @@ from app.storage import storage_kind
 async def lifespan(_: FastAPI):
     # 테이블을 만듭니다. DB가 아직 준비되지 않았으면 2초 간격으로 최대 15번 시도합니다.
     # 끝내 실패해도 앱은 뜨고, DB가 필요한 요청은 503(db_unavailable)으로 응답합니다.
-    await anyio.to_thread.run_sync(db.init_db)
+    ready = await anyio.to_thread.run_sync(db.init_db)
+    if ready:
+        await anyio.to_thread.run_sync(seed.seed_on_startup)  # cases가 비어 있으면 예시 사례 3건
     yield
 
 
@@ -42,6 +44,7 @@ def create_app(static_dir: str | Path | None = None) -> FastAPI:
 
     app.include_router(analyses.router)
     app.include_router(reports.router)
+    app.include_router(cases.router)
     app.include_router(procedures.router)
     app.include_router(photos.router)
     app.include_router(assets.router)
