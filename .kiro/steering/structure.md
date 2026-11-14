@@ -14,6 +14,8 @@ inclusion: always
 ├── SUBMISSION_GUIDE.md
 ├── PRESENTATION.pdf          # 제출 때 추가
 ├── Dockerfile                # 멀티 스테이지: 프론트 빌드 → 백엔드 이미지
+├── docker-compose.yml        # app + db (PostgreSQL, 이름 있는 볼륨)
+├── deploy/                   # 배포 절차 문서와 스크립트 (EC2, CloudFront, S3, IAM)
 ├── .kiro/
 │   ├── steering/             # product.md, tech.md, structure.md
 │   ├── specs/
@@ -39,11 +41,12 @@ backend/
 │   │   ├── client.py
 │   │   ├── prompts/          # 프롬프트 템플릿
 │   │   └── *.py              # analyze, review, rehearsal, draft 등 기능별
-│   ├── services/             # 절차 데이터 로딩, 사진 저장, 공유 시 비식별화 등
+│   ├── services/             # 절차 데이터 로딩, 공유 시 비식별화 등
+│   ├── storage/              # 사진 저장소. 인터페이스 하나 + S3 구현 + 로컬 디스크 구현
 │   └── seed.py               # 사례 예시 3~4건
 ├── data/
 │   └── *.json                # 신고 절차 데이터 (사람이 검증한 값)
-├── uploads/                  # 사진 원본. 커밋 금지
+├── uploads/                  # 개발용 로컬 디스크 사진(`S3_BUCKET` 없을 때만). 커밋 금지
 └── tests/
 ```
 
@@ -53,6 +56,7 @@ backend/
 | `routers/` | HTTP 경계. 검증과 응답 변환만 하고 로직은 `services/`, `ai/`로 넘김 |
 | `ai/` | 프롬프트 구성, `messages.parse()` 호출, `stop_reason` 확인, 오류 변환 |
 | `services/` | AI와 무관한 도메인 로직 |
+| `storage/` | 사진 저장·조회. 인터페이스 뒤에 S3(boto3, presigned GET URL 생성)와 로컬 디스크 구현을 둠. `S3_BUCKET` 유무로 선택. 라우터·서비스는 구현을 직접 부르지 않음 |
 | `schemas/` | 외부에 보이는 데이터 모양. DB 모델과 분리 |
 | `data/` | 절차의 단일 출처(source of truth). 코드는 값을 하드코딩하지 않음 |
 
@@ -179,12 +183,13 @@ frontend/
 | 테이블 | 주요 컬럼 |
 |---|---|
 | `reports` | `id`, `device_id`, `type_id`, `status`(`preparing`/`submitted`/`resolved`), `situation_text`, `location_text`, `summary`, `draft_text`, `submission_no`, `result`(`accepted`/`rejected`/`unknown`/null), `reject_reason`, `created_at`, `updated_at` |
-| `photos` | `id`, `report_id`, `device_id`, `file_path`, `scene_id`(null 가능), `review_status`(`sufficient`/`insufficient`/`undetermined`/null), `review_feedback`, `taken_order`, `created_at` |
+| `photos` | `id`, `report_id`, `device_id`, `s3_key`, `scene_id`(null 가능), `review_status`(`sufficient`/`insufficient`/`undetermined`/null), `review_feedback`, `taken_order`, `created_at` |
 | `step_progress` | `id`, `report_id`, `step_id`, `done`, `done_at` |
 | `ai_usage` | `id`, `device_id`, `date`, `count` (기기 ID + 날짜 유니크) |
 | `cases` | `id`, `report_id`(seed는 null), `type_id`, `title`, `body`, `result`, `district`(구 단위), `month`(예: 2026-11), `helpful_count`, `is_published`, `created_at` |
-| `case_photos` | `id`, `case_id`, `file_path` |
+| `case_photos` | `id`, `case_id`, `s3_key` |
 
 - `status` 값은 화면의 준비 중 / 접수 완료 / 처리 완료에 대응합니다.
+- 사진 테이블에는 URL을 저장하지 않습니다. 응답을 만들 때 `s3_key`로 presigned URL을 만듭니다. 로컬 디스크 구현에서는 `s3_key` 자리에 저장소 내부 키(상대 경로)를 넣습니다.
 - `cases`에는 상세 주소, 정확한 날짜, 접수번호 컬럼을 두지 않습니다. 비식별화는 저장 시점에 끝냅니다.
 - 사례 seed(3~4건)는 `app/seed.py`에서 넣고, 이미 있으면 다시 넣지 않습니다.
