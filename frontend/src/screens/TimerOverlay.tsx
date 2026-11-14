@@ -4,7 +4,7 @@ import { WaveBackdrop } from "../components/motifs/WaveBackdrop";
 import { Check, Clock } from "../components/icons/Icons";
 
 export function TimerOverlay() {
-  const { s, cancelTimer, timerShot } = useStore();
+  const { s, timerShot } = useStore();
   if (!s.timer) return null;
   const pct = (s.sec / (s.timerTotal || 60)) * 100;
   const clock = `${Math.floor(s.sec / 60)}:${String(s.sec % 60).padStart(2, "0")}`;
@@ -14,7 +14,8 @@ export function TimerOverlay() {
     <div className={`timer ${phase}`}>
       <WaveBackdrop variant="both" />
       <div className="row" style={{ alignSelf: "stretch", justifyContent: "flex-end", height: 44 }}>
-        <button className="btn btn-sm btn-secondary" onClick={cancelTimer}>그만두기</button>
+        {/* 이미 두 장을 찍었거나 기다릴 필요가 없으면 바로 다음 접수 단계로 넘어간다 */}
+        {!s.timerDone && <button className="btn btn-sm btn-secondary" onClick={timerShot}>건너뛰기</button>}
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 28 }}>
         <div className="row small strong" style={{ color: "var(--navy)" }}><Clock size={18} />같은 위치에서 두 번째 사진까지</div>

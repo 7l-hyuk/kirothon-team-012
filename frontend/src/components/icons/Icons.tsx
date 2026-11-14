@@ -16,6 +16,7 @@ export const Home = (p: P) => <Svg {...p}><path d="M3.5 11L12 4l8.5 7" /><path d
 export const Check = (p: P) => <Svg {...p}><path d="M5 12.5l4.5 4.5L19 7.5" /></Svg>;
 export const Plus = (p: P) => <Svg {...p}><path d="M12 5v14M5 12h14" /></Svg>;
 export const Minus = (p: P) => <Svg {...p}><path d="M6 12h12" /></Svg>;
+export const Close = (p: P) => <Svg {...p}><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" /></Svg>;
 export const Bang = (p: P) => <Svg {...p}><path d="M12 6v8" /><path d="M12 18h.01" /></Svg>;
 export const Camera = (p: P) => <Svg {...p}><path d="M4 8h3l1.6-2.5h6.8L17 8h3v11H4z" /><circle cx="12" cy="13.5" r="3.5" /></Svg>;
 export const Gallery = (p: P) => <Svg {...p}><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" /><circle cx="9" cy="10" r="1.6" /><path d="M20.5 16l-5-5L6 19.5" /></Svg>;
