@@ -97,13 +97,14 @@
 | 백엔드 | Python 3.14, FastAPI, uv |
 | 프론트엔드 | React, Vite, TypeScript, Tailwind CSS |
 | AI | Claude Opus 5.5 (`claude-opus-5-5`, Anthropic Python SDK), 사진 분석과 신고 문구 작성 |
-| 데이터 | SQLite + SQLModel, 신고 절차 데이터는 `backend/data/*.json` |
+| 데이터 | PostgreSQL + SQLModel, 신고 절차 데이터는 `backend/data/*.json` |
+| 사진 저장 | Amazon S3 비공개 버킷, 조회는 presigned URL |
 | 사용자 구분 | 로그인 없이 익명 기기 ID |
-| 배포 | Docker 이미지 하나 (FastAPI가 React 빌드 결과물도 함께 서빙) |
+| 배포 | AWS EC2 1대에 Docker Compose (FastAPI + PostgreSQL), HTTPS는 CloudFront |
 
 ### 실행 방법
 
-Python 3.14, [uv](https://docs.astral.sh/uv/), Node.js 24가 필요합니다.
+Python 3.14, [uv](https://docs.astral.sh/uv/), Node.js 24, Docker가 필요합니다.
 
 ```bash
 # 1. 의존성 설치
@@ -113,12 +114,28 @@ cd frontend && npm install && cd ..
 # 2. 환경변수 설정 (backend/.env, 커밋하지 않습니다)
 echo "ANTHROPIC_API_KEY=발급받은_키" > backend/.env
 
-# 3. 실행 (터미널 2개)
+# 3. 로컬 DB 실행 (PostgreSQL)
+docker compose up -d db
+
+# 4. 실행 (터미널 2개)
 cd backend && uv run uvicorn app.main:app --reload --port 8000
 cd frontend && npm run dev
 ```
 
 브라우저에서 http://localhost:5173 을 엽니다. 프론트의 `/api` 요청은 Vite 프록시가 백엔드(8000번 포트)로 넘깁니다.
+
+`S3_BUCKET`을 설정하지 않으면 사진은 로컬 `backend/uploads/`에 저장됩니다.
+
+### 배포 구성
+
+```
+사용자 ──HTTPS──> CloudFront ──HTTP──> EC2 (Docker Compose)
+                                        ├─ app: FastAPI + React 빌드 결과물
+                                        └─ db: PostgreSQL
+                                        app ──> S3 (사진), Claude API
+```
+
+서버에서는 `docker compose up -d --build` 한 번으로 앱과 DB를 함께 띄웁니다. S3 접근 권한은 EC2의 IAM 역할로 주고, 액세스 키는 서버에 두지 않습니다.
 
 ## 7. 테스트
 
@@ -133,5 +150,5 @@ cd frontend && npm run dev
 
 | 이름 | 역할 |
 |---|---|
-| 이채린 | PM |
+| 이채린 | PM, 프론트엔드 개발 |
 | 권기혁 | 백엔드 개발 |
