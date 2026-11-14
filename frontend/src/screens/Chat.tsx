@@ -16,7 +16,7 @@ export function Chat() {
   const ref = useRef<HTMLDivElement>(null);
 
   // 새 카드가 붙을 때마다 맨 아래로 스크롤한다.
-  const key = [s.p, s.cur, s.rstage, s.s7, s.draft, s.phase, s.analysisError, !!s.evidence, s.uploading, s.rhBusy, !!s.rehearsal, s.finished.length].join("|");
+  const key = [s.p, s.cur, s.rstage, s.gIdx, !!s.guide, s.draftBusy, s.phase, s.analysisError, !!s.evidence, s.uploading, s.rhBusy, !!s.rehearsal, s.finished.length].join("|");
   useEffect(() => {
     const go = () => { const el = ref.current; if (el) el.scrollTop = el.scrollHeight; };
     requestAnimationFrame(go); const t = setTimeout(go, 120); return () => clearTimeout(t);

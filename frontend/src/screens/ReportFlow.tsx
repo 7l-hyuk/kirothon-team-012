@@ -1,10 +1,9 @@
 // 신고 건 진행 (/chat, p === 3): S4 증거 안내, S5 사진 검수, S6 불법주정차 사전 점검, S7 접수 안내, S8 다음 항목
 import { useRef } from "react";
 import { REHEARSAL_SHOT, useStore } from "../app/store";
-import { DRAFTS, SUBMIT_STEPS } from "../data/content";
 import { LIMITS } from "../api/analyses";
-import type { ReviewStatus } from "../api/reports";
-import { Bot, Fine, Mark, Photo, Thinking } from "../components/ui";
+import type { ReviewStatus, Tone } from "../api/reports";
+import { Bot, Fine, Mark, Thinking } from "../components/ui";
 
 const MARK: Record<ReviewStatus, "ok" | "warn"> = { sufficient: "ok", insufficient: "warn", undetermined: "warn" };
 const TONE: Record<ReviewStatus, string> = { sufficient: "var(--ok)", insufficient: "var(--warn-ink)", undetermined: "var(--warn-ink)" };
@@ -53,13 +52,6 @@ export function ReportFlow() {
 
       {current && s.rstage === "evidence" && <Evidence pick={(id) => { target.current = id; scene.open(); }} />}
       {current && s.rstage === "rehearsal" && <ParkingCheck pick={rhPick.open} />}
-
-      {current && s.rstage === "submit" && (
-        <>
-          <Bot>{interval(s.timerTotal)} 간격으로 2장을 찍으셨어요. 안전신문고 앱에서 그대로 제출해 주세요.</Bot>
-          <button className="btn btn-primary" style={{ flex: "none" }} onClick={st.completeReport}>제출했어요</button>
-        </>
-      )}
 
       {current && s.rstage === "guide" && <Guide />}
 
@@ -211,7 +203,8 @@ function ParkingCheck({ pick }: { pick: () => void }) {
               ))}
               <div className="warnbox"><strong>주의:</strong> {rh.capture_guide.warning}</div>
               {rh.capture_guide.interval_note && <div className="small sub">{rh.capture_guide.interval_note}</div>}
-              <button className="btn btn-primary" onClick={st.startTimer}>{interval(rh.capture_guide.interval_seconds)} 타이머 시작</button>
+              <div className="small sub">사진을 찍을 차례가 되면 {interval(rh.capture_guide.interval_seconds)} 타이머를 켜 드려요.</div>
+              {s.rstage === "rehearsal" && <button className="btn btn-primary" onClick={st.toGuide}>접수 방법 안내받기</button>}
               <button className="link" style={{ alignSelf: "center", color: "var(--sub)" }} onClick={pick}>다른 사진으로 다시 점검</button>
             </div>
           )}
@@ -221,42 +214,96 @@ function ParkingCheck({ pick }: { pick: () => void }) {
   );
 }
 
-/** S7 접수 안내. 아직 대본(SUBMIT_STEPS)이다. feat/fe-guide에서 GET /api/reports/{id}/guide로 바꾼다. */
+const TONES: [Tone, string][] = [["shorter", "더 짧게"], ["politer", "더 정중하게"]];
+
+/** S7 접수 안내 (GET /guide). 건너뛴 단계는 숨기고 한 화면에 한 단계씩 보여 준다. */
 function Guide() {
   const st = useStore();
   const { s, current } = st;
-  const step = SUBMIT_STEPS[s.s7];
-  const photos = (s.evidence?.scenes ?? []).filter((sc) => sc.photo);
+  const g = s.guide;
+
+  if (s.gError) {
+    return (
+      <div className="panel" role="alert">
+        <div className="row"><Mark kind="warn" /><span className="strong" style={{ color: "var(--warn-ink)" }}>안내를 불러오지 못했어요</span></div>
+        <div>{s.gError}</div>
+        <button className="btn btn-primary" onClick={st.loadGuide}>다시 시도</button>
+      </div>
+    );
+  }
+  if (!g) return <Thinking>접수 방법을 준비하고 있어요</Thinking>;
+
+  const visible = g.steps.filter((x) => !x.skipped);
+  const step = g.steps[s.gIdx];
+  const no = visible.indexOf(step) + 1;
+  const first = no === 1;
+  const a = step.action;
+  const parkingShot = current?.type_id === "illegal_parking" && step.step_id === "attach_photos";
+  const cg = s.rehearsal?.capture_guide;
+  const text = s.draftText || a.text || "";
+
   return (
     <>
-      <Bot>사진이 모두 준비됐어요. 한 단계씩 같이 접수해 볼게요.</Bot>
+      <Bot>{g.sequence > 1 ? "앞에서 한 단계는 건너뛰고 이어서 접수할게요." : "한 단계씩 같이 접수해 볼게요."}</Bot>
       <div className="panel" style={{ gap: 14 }}>
-        <div className="row small"><span className="sub" style={{ flex: 1 }}>{current?.label} 접수</span><span className="step-count"><strong>{s.s7 + 1}</strong> / {SUBMIT_STEPS.length}</span></div>
-        <div key={s.s7} className="step-swap col" style={{ gap: 14 }}>
-          <div className="stepline">{step.pre}<strong>{step.b}</strong>{step.post}</div>
-          {step.sub && <div className="small sub" style={{ marginTop: -8 }}>{step.sub}</div>}
-          {s.s7 === 3 && (
-            <div className="row">
-              {photos.length
-                ? photos.map((sc) => <img key={sc.scene_id} src={sc.photo!.url} alt={sc.label} className="photo photo-grow" style={{ objectFit: "cover", padding: 0 }} />)
-                : <Photo className="photo-grow" label="준비한 사진" />}
+        <div className="row small"><span className="sub" style={{ flex: 1 }}>{g.label} 접수 · {g.channel.name}</span><span className="step-count"><strong>{no}</strong> / {visible.length}</span></div>
+
+        {first && g.carry_over.length > 0 && (
+          <div className="col">
+            {g.carry_over.map((c) => <div key={c.label} className="kv"><span className="k">{c.label}</span><span>{c.message}</span></div>)}
+          </div>
+        )}
+
+        <div key={step.step_id} className="step-swap col" style={{ gap: 14 }}>
+          <div className="stepline"><strong>{step.title}</strong></div>
+          {step.body && <div className="small sub" style={{ marginTop: -8, textWrap: "pretty" }}>{step.body}</div>}
+          {step.step_id === "select_menu" && g.channel.menu_path.length > 0 && <div className="note">{g.channel.menu_path.join(" > ")}</div>}
+
+          {a.kind === "save_photos" && (a.photos?.length ?? 0) > 0 && (
+            <div className="row" style={{ flexWrap: "wrap" }}>
+              {a.photos!.map((ph, i) => <img key={ph.id} src={ph.url} alt={`첨부할 사진 ${i + 1}`} className="photo photo-grow" style={{ objectFit: "cover", padding: 0, minWidth: 96 }} />)}
             </div>
           )}
-          {s.s7 === 5 && (
+
+          {parkingShot && cg && (
             <div className="col">
-              <div className="draft">{DRAFTS[s.draft]}</div>
+              {cg.steps.map((t, i) => <div key={t} style={{ display: "flex", gap: 10 }}><Mark kind="num">{i + 1}</Mark><div>{t}</div></div>)}
+              <div className="warnbox"><strong>주의:</strong> {cg.warning}</div>
+            </div>
+          )}
+
+          {a.kind === "copy_text" && (
+            <div className="col">
+              {s.draftBusy ? <Thinking>신고 문구를 쓰고 있어요</Thinking>
+                : s.draftError ? (
+                  <div className="col" role="alert">
+                    <div className="small" style={{ color: "var(--warn-ink)" }}>{s.draftError}</div>
+                    <button className="btn btn-secondary btn-sm" style={{ alignSelf: "flex-start" }} onClick={() => st.redraft(s.draftTone)}>다시 써 줘</button>
+                  </div>
+                ) : <div className="draft">{text}</div>}
               <div className="row small sub">다시 써 줘
-                <button className={`chip ${s.draft === 1 ? "on" : ""}`} onClick={() => st.set({ draft: s.draft === 1 ? 0 : 1 })}>더 짧게</button>
-                <button className={`chip ${s.draft === 2 ? "on" : ""}`} onClick={() => st.set({ draft: s.draft === 2 ? 0 : 2 })}>더 정중하게</button>
+                {TONES.map(([t, label]) => (
+                  <button key={t} className={`chip ${s.draftTone === t ? "on" : ""}`} disabled={s.draftBusy} onClick={() => st.redraft(s.draftTone === t ? "default" : t)}>{label}</button>
+                ))}
               </div>
             </div>
           )}
-          {s.s7 === 6 && <input className="input" value={s.receipt} placeholder="접수번호 (선택)" onChange={(e) => st.set({ receipt: e.target.value })} />}
+
+          {a.kind === "submit" && <input className="input" value={s.receipt} maxLength={50} placeholder="접수번호 (선택)" onChange={(e) => st.set({ receipt: e.target.value })} />}
+          {!step.verified && <div className="xs sub">실제 화면과 다를 수 있어요</div>}
         </div>
+
         <div className="row">
-          {s.s7 > 0 && <button className="btn btn-secondary" onClick={() => st.set({ s7: s.s7 - 1 })}>이전</button>}
-          <button className="btn btn-primary btn-grow" onClick={st.s7Next}>{step.btn}</button>
+          {!first && <button className="btn btn-secondary" onClick={st.gPrev}>이전</button>}
+          {parkingShot
+            ? <button className="btn btn-primary btn-grow" onClick={st.startTimer}>{interval(cg?.interval_seconds ?? 60)} 타이머 시작</button>
+            : (
+              <button className="btn btn-primary btn-grow" disabled={(a.kind === "copy_text" && (!text || s.draftBusy)) || s.filing} onClick={st.gAction}>
+                {s.filing ? "저장하고 있어요" : a.button_label}
+              </button>
+            )}
         </div>
+        {a.kind === "save_photos" && <button className="link" style={{ alignSelf: "center", color: "var(--sub)" }} onClick={st.gNext}>직접 저장했어요</button>}
       </div>
     </>
   );
