@@ -46,3 +46,4 @@
 
 ## 코드 리뷰 반영
 - [x] 분석 프롬프트(`app/ai/prompts.py`)에서 `photo_numbers`(문제가 보이는 사진)와 `satisfied_scenes`(증거 장면 통과 기준 충족)를 구분하고, "애매하면 넣지 않습니다"를 "통과 기준에 적힌 것이 사진에 분명히 보이면 넣는다"로 변경. `schemas/ai_outputs.py` 필드 주석도 같은 뜻으로 맞춤
+- [x] 이슈 #17 반영: `GET /api/reports`의 `thumbnail_url`을 건의 첫 사진 → 분석에서 그 유형 문제가 보인 첫 사진(`item_photo_ids`) → 분석의 첫 사진 → `null` 순서로 정함(`store.thumbnail_url`, 같은 분석 조회는 요청 안에서 재사용). 상세의 `photos`는 그대로. `tests/test_report_thumbnail.py`, `docs/api-spec.md`
