@@ -155,12 +155,7 @@ API 명세는 [`docs/api-spec.md`](docs/api-spec.md)에 있고, 실행 중인 �
 
 ### 배포 구성
 
-```
-사용자 ──HTTPS──> CloudFront ──HTTP──> EC2 (Docker Compose)
-                                        ├─ app: FastAPI + React 빌드 결과물
-                                        └─ db: PostgreSQL
-                                        app ──> S3 (사진), Claude API
-```
+![신고메이트 배포 구성도](docs/architecture.png)
 
 `main`에 병합되면 GitHub Actions가 서버에서 `docker compose up -d --build`를 실행해 앱과 DB를 함께 띄웁니다. S3 접근 권한은 EC2의 IAM 역할로 주고, 액세스 키는 서버와 GitHub 어디에도 두지 않습니다. 자세한 내용은 [`deploy/README.md`](deploy/README.md)에 있습니다.
 
