@@ -60,7 +60,7 @@ class ReviewOutput(BaseModel):
 
 # ---- 불법주정차 사전 점검 ----
 class RehearsalOutput(BaseModel):
-    zone: Zone | None  # 6대 금지구역 중 어디인지. 아니면 null
+    zone: Zone | None  # 주정차 금지구역(6대 금지구역 + no_parking_zone) 중 어디인지. 아니면 null
     zone_status: ReviewStatus
     zone_detail: str | None
     plate_readable: ReviewStatus

@@ -155,7 +155,7 @@
 | `reportable` | 신고 가능한 항목이 하나라도 있으면 `true` |
 | `items[].subtitle` | 체크박스 아래 한 줄. 절차 데이터의 `agency`, `channel.name`으로 서버가 조립합니다 |
 | `items[].reason` | "왜 신고가 되나요?"를 펼쳤을 때 보이는 근거 |
-| `items[].detail.zone` | 불법주정차만. `fire_hydrant`, `intersection_corner`, `bus_stop`, `crosswalk`, `school_zone`, `sidewalk` 중 하나 |
+| `items[].detail.zone` | 불법주정차만. `fire_hydrant`, `intersection_corner`, `bus_stop`, `crosswalk`, `school_zone`, `sidewalk`, `no_parking_zone` 중 하나. `no_parking_zone`은 6대 금지구역이 아닌, 황색 실선·황색 복선 위나 주정차금지 표지가 있는 구간 |
 | `unsupported_items` | 보이지만 4개 유형에 속하지 않는 문제 |
 | `location` | 추정하지 못하면 각 값이 `null` |
 | `emergency` | 사람이 다쳤거나 위험이 진행 중으로 보이면 `true`. 프론트가 112·119 안내를 띄웁니다 |
@@ -169,7 +169,7 @@
   "not_reportable": {
     "title": "신고가 어려운 상황이에요",
     "message": "아파트 단지 안 주차장은 사유지라 주민신고 대상이 아니에요. 관리사무소에 문의해 보세요.",
-    "basis": "주민신고는 도로 위 6대 금지구역(소화전, 교차로 모퉁이, 버스정류소, 횡단보도, 어린이보호구역, 인도)에만 적용돼요."
+    "basis": "주민신고는 도로 위 6대 금지구역(소화전, 교차로 모퉁이, 버스정류소, 횡단보도, 어린이보호구역, 인도)과 황색 실선·주정차금지 표지 구간에 적용돼요."
   }
 }
 ```

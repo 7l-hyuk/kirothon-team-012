@@ -47,7 +47,7 @@ response = client.messages.parse(model=settings.claude_model, max_tokens=..., sy
 
 | 엔드포인트 | AI | 서버 |
 |---|---|---|
-| 분석 | `summary`, 항목별 `reason`·`zone`, `unsupported_items`, `not_reportable`, 위치, `emergency`, 증거 장면 충족 | `label`, `category`, `subtitle`(절차 데이터), 유형 밖 항목 이동, 사진 URL |
+| 분석 | `summary`, 항목별 `reason`·`zone`(6대 금지구역 또는 `no_parking_zone`), `unsupported_items`, `not_reportable`, 위치, `emergency`, 증거 장면 충족 | `label`, `category`, `subtitle`(절차 데이터), 유형 밖 항목 이동, 사진 URL |
 | 검수 | `status`, `message`, `retake_tip` | `retake_tip` 보충, 증거 진행 수 |
 | 사전 점검 | `zone`, 3개 판정과 설명 | 라벨, `passed`, `capture_guide`, 간격(`interval_seconds`) |
 | 대필 | 문구 | 위치 자리표시 보장, 저장 |

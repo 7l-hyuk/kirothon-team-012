@@ -11,7 +11,8 @@
   },
   "eligibility": {
     "reportable_when": [
-      "도로 위 6대 금지구역(소화전, 교차로 모퉁이, 버스정류소, 횡단보도, 어린이보호구역, 인도)에 주정차한 차량"
+      "도로 위 6대 금지구역(소화전, 교차로 모퉁이, 버스정류소, 횡단보도, 어린이보호구역, 인도)에 주정차한 차량",
+      "도로 가장자리의 황색 실선·황색 복선 위, 또는 주정차금지 표지가 있는 구간에 주정차한 차량"
     ],
     "not_reportable_when": [
       {
@@ -19,7 +20,7 @@
         "advice": "관리사무소에 문의해 보세요"
       }
     ],
-    "basis": "주민신고는 도로 위 6대 금지구역(소화전, 교차로 모퉁이, 버스정류소, 횡단보도, 어린이보호구역, 인도)에만 적용돼요."
+    "basis": "주민신고는 도로 위 6대 금지구역(소화전, 교차로 모퉁이, 버스정류소, 횡단보도, 어린이보호구역, 인도)과 황색 실선·주정차금지 표지 구간에 적용돼요."
   },
   "evidence_scenes": [
     {
@@ -42,7 +43,8 @@
     { "zone_id": "bus_stop", "label": "버스정류소", "interval_seconds": 60, "first_shot_tip": "번호판과 버스정류소 표지가 함께 나오게", "verified": true },
     { "zone_id": "crosswalk", "label": "횡단보도", "interval_seconds": 60, "first_shot_tip": "번호판과 횡단보도가 함께 나오게", "verified": true },
     { "zone_id": "school_zone", "label": "어린이보호구역", "interval_seconds": 300, "first_shot_tip": "번호판과 어린이보호구역 표지가 함께 나오게", "verified": false },
-    { "zone_id": "sidewalk", "label": "인도", "interval_seconds": 60, "first_shot_tip": "번호판과 인도 경계석이 함께 나오게", "verified": true }
+    { "zone_id": "sidewalk", "label": "인도", "interval_seconds": 60, "first_shot_tip": "번호판과 인도 경계석이 함께 나오게", "verified": true },
+    { "zone_id": "no_parking_zone", "label": "주정차 금지구역", "interval_seconds": 60, "first_shot_tip": "번호판과 황색 실선 또는 주정차금지 표지가 함께 나오게", "verified": false }
   ],
   "rehearsal_checks": ["zone", "plate_readable", "background_included"],
   "capture_guide": {
