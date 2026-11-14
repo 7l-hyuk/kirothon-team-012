@@ -25,7 +25,6 @@ from app.models import AiUsage, Analysis, Photo
 from tests.conftest import count_rows, make_image, set_photo_bytes
 
 TRASH_LOCATION_TIP = "두세 걸음 뒤로 물러나서 건물 간판이 함께 나오게 다시 찍어 주세요."
-PLACEHOLDER = "[위치를 적어 주세요]"
 
 
 # ---------------------------------------------------------------- 도우미
@@ -479,18 +478,14 @@ def test_draft_is_saved_and_receives_context(client, headers, ai):
     assert copy["action"]["text"] == text
 
 
-def test_draft_without_location_has_placeholder(client, headers, ai):
+def test_draft_without_location_has_no_placeholder(client, headers, ai):
     out = analysis_a(location=LocationOut(address=None, district=None, dong=None))
     _, reports = setup_reports(client, headers, ai, out=out)
     trash = next(r for r in reports if r["type_id"] == "trash_dumping")
-    ai.reply(DraftOutput(text="전봇대 아래에 생활쓰레기가 무단투기되어 있습니다."))  # AI가 자리표시를 빠뜨림
+    ai.reply(DraftOutput(text="전봇대 아래에 생활쓰레기가 무단투기되어 있습니다."))
     r = client.post(f"/api/reports/{trash['id']}/drafts", json={}, headers=headers)
-    assert r.json()["text"].startswith(PLACEHOLDER)
-    assert PLACEHOLDER in ai.calls[-1]["messages"][0]["content"][0]["text"]
-
-    ai.reply(DraftOutput(text=f"{PLACEHOLDER} 앞에 생활쓰레기가 있습니다."))
-    r = client.post(f"/api/reports/{trash['id']}/drafts", headers=headers)
-    assert r.json()["text"].count(PLACEHOLDER) == 1 and r.json()["tone"] == "default"
+    assert r.json()["text"] == "전봇대 아래에 생활쓰레기가 무단투기되어 있습니다."
+    assert "위치:" not in ai.calls[-1]["messages"][0]["content"][0]["text"]
 
 
 # ---------------------------------------------------------------- 접수 안내는 절차 데이터로 조립
@@ -621,7 +616,7 @@ def test_daily_limit_counts_all_four_endpoints(client, headers, ai, monkeypatch)
     assert client.post(
         f"/api/reports/{trash['id']}/photos", data={"scene_id": "location"}, files={"photo": upload()}, headers=headers
     ).status_code == 201  # 2회
-    ai.reply(DraftOutput(text="[위치를 적어 주세요]가 아니라 위치가 있습니다."))
+    ai.reply(DraftOutput(text="앞에 쓰레기가 있습니다."))
     assert client.post(f"/api/reports/{trash['id']}/drafts", json={}, headers=headers).status_code == 200  # 3회
     r = client.post(f"/api/reports/{trash['id']}/drafts", json={}, headers=headers)
     assert r.status_code == 429 and r.json()["code"] == "daily_limit_exceeded"

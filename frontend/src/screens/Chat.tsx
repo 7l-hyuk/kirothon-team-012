@@ -4,7 +4,6 @@ import { Badge, Bot, Check, Fine, Mark } from "../components/ui";
 import { ReportFlow } from "./ReportFlow";
 import { AppBar } from "../components/AppBar";
 import { Stepper } from "../components/Stepper";
-import { WaveBackdrop } from "../components/motifs/WaveBackdrop";
 import { NotReportableArt } from "../components/motifs/Illustrations";
 
 export function Chat() {
@@ -40,7 +39,6 @@ export function Chat() {
 
   return (
     <div className="chat">
-      <WaveBackdrop variant="corner" fill="var(--chat-bg)" />
       <div className="chat-head">
         <AppBar title="신고하기" onBack={st.goHome} right={countLabel ? <span className="ab-count">{countLabel}</span> : undefined} />
         <Stepper current={stage} compact={compact} />

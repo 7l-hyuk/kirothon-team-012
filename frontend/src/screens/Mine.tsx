@@ -73,7 +73,7 @@ export function Mine() {
         ) : (
           <div className="col" style={{ gap: 10 }}>
             {items.map((m) => (
-              <div key={m.id} className="col" style={{ gap: 4 }}>
+              <div key={m.id} className="item-box">
                 <button className="item" onClick={() => nav(`/mine/${m.id}`)}>
                   {m.thumbnail_url
                     ? <img src={m.thumbnail_url} alt="" className="photo photo-md" style={{ objectFit: "cover", padding: 0 }} />
@@ -87,7 +87,7 @@ export function Mine() {
                   </div>
                   <span className="sub"><ChevronRight size={18} /></span>
                 </button>
-                {m.resumable && <button className="link" style={{ alignSelf: "flex-end", color: "var(--navy)", fontWeight: 600 }} onClick={() => resume(m.id)}>이어서 하기</button>}
+                {m.resumable && <button className="btn btn-secondary btn-sm item-resume" onClick={() => resume(m.id)}>이어서 하기</button>}
               </div>
             ))}
           </div>
@@ -195,16 +195,16 @@ export function MineDetail() {
             </div>
             {d.case_id ? (
               <div className="row">
-                <button className="btn btn-secondary" disabled={unsharing} onClick={async () => {
+                <button className="btn btn-secondary btn-roomy" disabled={unsharing} onClick={async () => {
                   setUnsharing(true);
                   try { await unshareCase(d.id); setD({ ...d, case_id: null }); toast("공유를 내렸어요"); }
                   catch (e) { toast(errorMessage(e)); }
                   finally { setUnsharing(false); }
                 }}>공유 내리기</button>
-                <button className="btn btn-outline btn-grow" onClick={() => nav(`/cases/${d.case_id}`)}>공유한 사례 보기</button>
+                <button className="btn btn-outline btn-grow btn-roomy" onClick={() => nav(`/cases/${d.case_id}`)}>공유한 사례 보기</button>
               </div>
             ) : (
-              <button className="btn btn-outline" onClick={() => openShare(d.id, `/mine/${d.id}`)}><Share size={16} />사례로 공유하기</button>
+              <button className="btn btn-outline btn-roomy" onClick={() => openShare(d.id, `/mine/${d.id}`)}><Share size={16} />사례로 공유하기</button>
             )}
           </>
         )}

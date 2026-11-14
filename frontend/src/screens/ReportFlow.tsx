@@ -4,6 +4,7 @@ import { REHEARSAL_SHOT, useStore } from "../app/store";
 import { LIMITS } from "../api/analyses";
 import type { ReviewStatus, Tone } from "../api/reports";
 import { Bot, Fine, Mark, Thinking } from "../components/ui";
+import { Copy } from "../components/icons/Icons";
 
 const MARK: Record<ReviewStatus, "ok" | "warn"> = { sufficient: "ok", insufficient: "warn", undetermined: "warn" };
 const TONE: Record<ReviewStatus, string> = { sufficient: "var(--ok)", insufficient: "var(--warn-ink)", undetermined: "var(--warn-ink)" };
@@ -280,7 +281,17 @@ function Guide() {
                     <div className="small" style={{ color: "var(--warn-ink)" }}>{s.draftError}</div>
                     <button className="btn btn-secondary btn-sm" style={{ alignSelf: "flex-start" }} onClick={() => st.redraft(s.draftTone)}>다시 써 줘</button>
                   </div>
-                ) : <div className="draft">{text}</div>}
+                ) : (
+                  <div className="draft-box">
+                    <div className="draft">{text}</div>
+                    <div className="draft-foot">
+                      <span className="xs sub" aria-live="polite">{[...text].length}자</span>
+                      <button className="icon-btn" aria-label="글 복사" onClick={async () => {
+                        try { await navigator.clipboard.writeText(text); st.toast("글을 복사했어요"); } catch { st.toast("글을 길게 눌러 복사해 주세요"); }
+                      }}><Copy size={18} /></button>
+                    </div>
+                  </div>
+                )}
               <div className="row small sub">다시 써 줘
                 {TONES.map(([t, label]) => (
                   <button key={t} className={`chip ${s.draftTone === t ? "on" : ""}`} disabled={s.draftBusy} onClick={() => st.redraft(s.draftTone === t ? "default" : t)}>{label}</button>
@@ -299,7 +310,7 @@ function Guide() {
             ? <button className="btn btn-primary btn-grow" onClick={st.startTimer}>{interval(cg?.interval_seconds ?? 60)} 타이머 시작</button>
             : (
               <button className="btn btn-primary btn-grow" disabled={(a.kind === "copy_text" && (!text || s.draftBusy)) || s.filing} onClick={st.gAction}>
-                {s.filing ? "저장하고 있어요" : a.button_label}
+                {s.filing ? "저장하고 있어요" : a.kind === "copy_text" ? "다음 단계" : a.button_label}
               </button>
             )}
         </div>

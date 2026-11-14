@@ -279,7 +279,7 @@ def rehearsal(session: Session, device_id: str, rec: Report, photo_id: str | Non
 def _status_label(rec: Report) -> str:
     if rec.status == "preparing":
         s = _summary(rec)
-        return f"준비 중 · 증거 {s.done_count}/{s.required_count}"
+        return "준비 중"
     if rec.status == "filed":
         return "접수 완료"
     return f"처리 완료 · {RESULT_LABEL.get(rec.result or '', '')}"

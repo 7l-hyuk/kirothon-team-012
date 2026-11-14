@@ -61,7 +61,7 @@ export function Landing() {
           <span className="ld-divider" aria-hidden />
           <span className="ld-main-text">
             <strong>신고하기</strong>
-            <span>사진 한 장이면<br />신고 준비를 도와드려요</span>
+            <span>신고 가능 여부부터 접수까지<br />단계별로 알려 드려요</span>
           </span>
           <span className="ld-arrow" aria-hidden>
             <svg width="18" height="18" viewBox="0 0 18 18"><path d="M2 9h13 M10 4l5 5-5 5" fill="none" stroke="#1b2240" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>

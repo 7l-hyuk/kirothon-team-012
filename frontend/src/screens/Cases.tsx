@@ -63,7 +63,7 @@ export function Cases() {
           ))}
         </div>
 
-        <button className="btn btn-outline btn-block" style={{ marginTop: 6 }} onClick={() => nav("/report")}>신고하러 가기</button>
+        <button className="btn btn-outline btn-block btn-roomy" style={{ marginTop: 10, marginBottom: 12 }} onClick={() => nav("/report")}>신고하러 가기</button>
       </div>
     </div>
   );

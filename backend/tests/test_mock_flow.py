@@ -136,7 +136,7 @@ def test_report_state_transitions(client, headers):
     url = f"/api/reports/{r1['id']}"
 
     detail = client.get(url, headers=headers).json()
-    assert detail["status_label"] == "준비 중 · 증거 1/2"
+    assert detail["status_label"] == "준비 중"
     assert detail["next_report_id"] == r2["id"]
 
     # 증거 부족 → 접수 불가, 접수 전 결과 입력 불가

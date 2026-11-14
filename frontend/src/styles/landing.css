@@ -31,8 +31,9 @@
 /* 아래쪽: 메뉴 패널 */
 .ld-panel {
   position: relative; z-index: 1; flex: none; margin-top: -24px;
-  display: flex; flex-direction: column; gap: 14px;
-  padding: 22px 20px calc(env(safe-area-inset-bottom) + clamp(24px, 7.5cqh, 64px));
+  display: flex; flex-direction: column; gap: 12px;
+  /* 위·옆 여백 20px, 카드 사이 12px. 아래는 창살 모서리(48px)와 겹치지 않게 비워 패널을 위로 올린다 */
+  padding: 24px 20px calc(env(safe-area-inset-bottom) + clamp(64px, 12cqh, 104px));
   background: var(--bg); color: var(--ink);
   border-radius: 28px 28px 0 0;
 }

@@ -254,7 +254,7 @@ S3에서 체크한 항목으로 신고 건을 만듭니다. 선택한 순서가 
 | 필드 | 설명 |
 |---|---|
 | `sequence`, `total` | 화면 오른쪽 위 "1/2건" 표시 |
-| `status_label` | 목록 배지 문구. 서버가 조립합니다 (`접수 완료`, `처리 완료 · 수용`, `준비 중 · 증거 1/3`) |
+| `status_label` | 목록 배지 문구. 서버가 조립합니다 (`접수 완료`, `처리 완료 · 수용`, `준비 중`) |
 | `current_step` | 접수 안내에서 마지막으로 끝낸 단계 번호. 시작 전이면 `0` |
 | `receipt_number` | 입력하지 않았으면 `null`. S9에서는 "접수번호 입력 안 함"으로 표시 |
 | `case_id` | 사례로 공유했으면 사례 ID, 아니면 `null`. `cases.report_id`로 조회합니다 |
@@ -285,7 +285,7 @@ S3에서 체크한 항목으로 신고 건을 만듭니다. 선택한 순서가 
       "category": "complaint",
       "label": "불법 광고물",
       "status": "preparing",
-      "status_label": "준비 중 · 증거 1/3",
+      "status_label": "준비 중",
       "district": "마포구",
       "dong": "합정동",
       "created_at": "2026-11-12T09:30:00+09:00",
@@ -545,7 +545,7 @@ S4의 증거 체크리스트입니다.
 }
 ```
 
-문구에는 위치, 확인한 일시, 상황, 요청 사항이 들어갑니다. 위치를 모르면 `[위치를 적어 주세요]` 자리표시를 넣습니다.
+문구에는 위치, 확인한 일시, 상황, 요청 사항이 들어갑니다. 위치(주소)를 모르면 위치는 쓰지 않습니다. 사용자가 안전신문고에서 발생 지역을 직접 고르기 때문입니다.
 
 ---
 
@@ -735,7 +735,7 @@ S4의 증거 체크리스트입니다.
 | `POST /api/analyses` | "아파트"·"주차장"이 글에 있으면 신고 불가, 아니면 불법주정차 + 쓰레기 2건 | Claude가 사진·글을 분석. `subtitle`, `label`, 접수처는 절차 데이터로 서버가 조립 |
 | `POST /api/reports/{id}/photos` | 첫 업로드는 불충분, 두 번째부터 충분 | Claude가 장면별 통과 기준으로 검수. `retake_tip`이 비면 절차 데이터 값으로 채움 |
 | `POST /api/reports/{id}/rehearsals` | 고정 결과 | Claude가 구역·번호판·배경을 판정. `capture_guide`는 절차 데이터와 `zone`으로 조립 |
-| `POST /api/reports/{id}/drafts` | 고정 문구 | Claude가 합니다체로 작성. 위치를 모르면 `[위치를 적어 주세요]` 포함 |
+| `POST /api/reports/{id}/drafts` | 고정 문구 | Claude가 합니다체로 작성. 위치를 모르면 위치 없이 작성 |
 | `GET /api/reports/{id}/case-preview` | 신고 건 자료로 조립한 고정 형식의 글 | Claude가 해요체로 작성하고 서버가 비식별화. 저장된 글이 있으면 재사용 |
 | `GET /api/reports/{id}/guide` | 고정 7단계 | `backend/data/*.json`의 `steps`로 조립 |
 
