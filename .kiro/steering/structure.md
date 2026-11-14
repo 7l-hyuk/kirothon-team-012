@@ -32,20 +32,22 @@ backend/
 ├── pyproject.toml            # uv 관리
 ├── .env                      # 커밋 금지
 ├── app/
-│   ├── main.py               # FastAPI `app`, 라우터 등록, 정적 파일 서빙, 시작 시 DB 생성·seed
+│   ├── main.py               # FastAPI `app`, 라우터 등록, 정적 파일 서빙, 시작 시 DB 생성(lifespan). seed는 사례 구현 때
 │   ├── config.py             # 환경변수 읽기
-│   ├── db.py                 # SQLModel 엔진, 세션
-│   ├── deps.py               # X-Device-Id 추출, AI 호출 상한 검사
-│   ├── models/               # SQLModel 테이블
+│   ├── db.py                 # SQLModel 엔진, 시작 시 테이블 생성·재시도, DB 준비 확인
+│   ├── deps.py               # X-Device-Id 추출, 요청 단위 DB 세션(SessionDep)
+│   ├── timeutil.py           # KST, now_kst(), today_kst()
+│   ├── errors.py             # 오류 코드와 처리기
+│   ├── models/               # SQLModel 테이블(tables.py), 시각 타입(types.py)
 │   ├── schemas/              # API 요청·응답, AI 구조화 출력용 Pydantic 모델
 │   ├── routers/              # API 라우터 (기능별 파일)
 │   ├── ai/                   # Anthropic SDK 호출은 여기에서만
 │   │   ├── client.py
 │   │   ├── prompts/          # 프롬프트 템플릿
 │   │   └── *.py              # analyze, review, rehearsal, draft 등 기능별
-│   ├── services/             # 절차 데이터 로딩, 공유 시 비식별화 등
-│   ├── storage/              # 사진 저장소. 인터페이스 하나 + S3 구현 + 로컬 디스크 구현
-│   └── seed.py               # 사례 예시 3~4건
+│   ├── services/             # store.py(DB 저장소), quota.py(AI 호출 상한), photos.py(업로드 검사·축소), 절차 데이터 로딩 등
+│   ├── storage/              # 사진 저장소. base.py(인터페이스) + s3.py + local.py, get_storage()
+│   └── seed.py               # 사례 예시 3~4건 (사례 구현 때 추가)
 ├── data/
 │   └── *.json                # 신고 절차 데이터 (사람이 검증한 값)
 ├── uploads/                  # 개발용 로컬 디스크 사진(`S3_BUCKET` 없을 때만). 커밋 금지
@@ -188,19 +190,21 @@ frontend/
   - `capture_rules.same_position_required: true`, `capture_rules.photo_count_min: 2`.
 - 서버 시작 때 JSON을 Pydantic 모델로 읽어 검증하고, 형식이 틀리면 시작을 실패시킵니다.
 
-## DB 테이블 (초안, SQLModel)
+## DB 테이블 (SQLModel)
+`analyses`, `reports`, `photos`, `ai_usage`는 구현했고(`backend/app/models/tables.py`), 나머지는 아직 초안입니다. ID는 UUID 문자열(`VARCHAR(36)`)입니다.
+
 | 테이블 | 주요 컬럼 |
 |---|---|
-| `analyses` | `id`, `device_id`, `situation_text`, `result`(AI 분석 결과 JSON), `address`(null 가능), `district`(null 가능), `dong`(null 가능), `created_at` |
-| `reports` | `id`, `device_id`, `analysis_id`, `type_id`, `sequence`, `status`(`preparing`/`filed`/`resolved`), `current_step`, `situation_text`, `location_text`, `summary`, `draft_text`, `receipt_number`, `result`(`accepted`/`rejected`/`unknown`/null), `result_reason`, `filed_at`, `resolved_at`, `created_at`, `updated_at` |
-| `photos` | `id`, `device_id`, `analysis_id`(null 가능), `report_id`(null 가능), `s3_key`, `scene_id`(null 가능), `review_status`(`sufficient`/`insufficient`/`undetermined`/null), `review_message`, `retake_tip`, `taken_order`, `created_at` |
-| `step_progress` | `id`, `report_id`, `step_id`, `done`, `done_at` |
-| `ai_usage` | `id`, `device_id`, `date`, `count` (기기 ID + 날짜 유니크) |
+| `analyses` | `id`, `device_id`, `situation_text`, `result`(AI 분석 결과 JSON. 사진 URL이 든 `input`은 제외), `address`(null 가능), `district`(null 가능), `dong`(null 가능), `created_at`, `scene_matches`(JSON), `item_photo_ids`(JSON) |
+| `reports` | `id`, `device_id`, `analysis_id`, `type_id`, `category`, `label`, `sequence`, `total`, `status`(`preparing`/`filed`/`resolved`), `current_step`, `situation_text`, `location_text`, `district`, `dong`, `summary`, `zone`, `draft_text`, `receipt_number`, `result`(`accepted`/`rejected`/`unknown`/null), `result_reason`, `scenes`(JSON: 장면별 사진·검수 상태), `filed_at`, `resolved_at`, `created_at`, `updated_at`. `(analysis_id, sequence)` 유일 |
+| `photos` | `id`, `device_id`, `analysis_id`(null 가능), `report_id`(null 가능), `s3_key`(가짜 모드 자리표시 사진은 null), `scene_id`(null 가능), `review_status`(`sufficient`/`insufficient`/`undetermined`/null), `review_message`, `retake_tip`, `taken_order`, `created_at` |
+| `step_progress` | `id`, `report_id`, `step_id`, `done`, `done_at` (미구현. 진행 단계는 `reports.current_step`으로 충분해서 만들지 않았습니다) |
+| `ai_usage` | `id`, `device_id`, `day`(KST 날짜), `count` (`device_id` + `day` 유일 제약) |
 | `cases` | `id`, `report_id`(seed는 null), `type_id`, `title`, `body`, `result`, `district`(구 단위), `month`(예: 2026-11), `like_count`, `is_published`, `created_at` |
 | `case_likes` | `id`, `case_id`, `device_id` (`case_id` + `device_id` 유일 제약) |
 | `case_photos` | `id`, `case_id`, `s3_key` |
 
 - `status` 값은 화면의 준비 중 / 접수 완료 / 처리 완료에 대응합니다.
-- 사진 테이블에는 URL을 저장하지 않습니다. 응답을 만들 때 `s3_key`로 presigned URL을 만듭니다. 로컬 디스크 구현에서는 `s3_key` 자리에 저장소 내부 키(상대 경로)를 넣습니다.
+- 사진 테이블에는 URL을 저장하지 않습니다. 응답을 만들 때 `s3_key`로 presigned URL을 만듭니다. 로컬 디스크 구현에서는 `s3_key` 자리에 저장소 내부 키(`photos/{yyyy}/{mm}/{photo_id}.jpg`, `UPLOAD_DIR` 기준 상대 경로)를 넣고 URL은 `GET /api/photos/{photo_id}/file`입니다.
 - `cases`에는 상세 주소, 정확한 날짜, 접수번호 컬럼을 두지 않습니다. 비식별화는 저장 시점에 끝냅니다.
 - 사례 seed(3~4건)는 `app/seed.py`에서 넣고, 이미 있으면 다시 넣지 않습니다.

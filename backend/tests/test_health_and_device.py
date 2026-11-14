@@ -9,7 +9,7 @@ from app.main import create_app
 def test_health_without_db(client):
     r = client.get("/api/health")
     assert r.status_code == 200
-    assert r.json() == {"status": "ok", "db": "unavailable", "mock": True}
+    assert r.json() == {"status": "ok", "db": "unavailable", "mock": True, "storage": "local"}
     assert r.headers["X-Mock"] == "true"
 
 

@@ -1,26 +1,19 @@
-"""업로드 사진 검사, 축소, 임시 저장. (S3로 바꾸는 것은 다음 Spec)
+"""업로드 사진 검사와 축소. 저장은 app.services.store.new_photo와 app.storage가 합니다.
 
-AI에는 긴 변 1568px 이하 JPEG만 보냅니다(용량과 응답 시간 때문).
+AI에는 긴 변 1568px 이하 JPEG만 보냅니다(용량과 응답 시간 때문). 저장하는 파일도 같은 JPEG입니다.
 """
 
 import io
-from uuid import uuid4
 
 from fastapi import UploadFile
 
 from app.errors import photo_too_large, unsupported_media
-from app.schemas.common import PhotoRef
-from app.services.store import PhotoRecord, store
 
 ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp"}
 ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP"}
 MAX_PHOTO_BYTES = 10 * 1024 * 1024
 MAX_EDGE = 1568
 JPEG_QUALITY = 85
-
-
-def photo_url(photo_id: str) -> str:
-    return f"/api/photos/{photo_id}/file"
 
 
 def read_upload(file: UploadFile) -> bytes:
@@ -54,9 +47,3 @@ def shrink_to_jpeg(raw: bytes) -> bytes:
 
 def prepare_upload(file: UploadFile) -> bytes:
     return shrink_to_jpeg(read_upload(file))
-
-
-def save_photo(device_id: str, jpeg: bytes) -> PhotoRef:
-    photo_id = str(uuid4())
-    store.photos[photo_id] = PhotoRecord(id=photo_id, device_id=device_id, data=jpeg)
-    return PhotoRef(id=photo_id, url=photo_url(photo_id))

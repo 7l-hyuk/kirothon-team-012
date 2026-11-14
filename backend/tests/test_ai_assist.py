@@ -21,8 +21,8 @@ from app.schemas.ai_outputs import (
     SceneMatchOut,
     UnsupportedItemOut,
 )
-from app.services.store import store
-from tests.conftest import make_image
+from app.models import AiUsage, Analysis, Photo
+from tests.conftest import count_rows, make_image, set_photo_bytes
 
 TRASH_LOCATION_TIP = "두세 걸음 뒤로 물러나서 건물 간판이 함께 나오게 다시 찍어 주세요."
 PLACEHOLDER = "[위치를 적어 주세요]"
@@ -105,8 +105,7 @@ def test_with_key_has_no_mock_header_and_health_says_not_mock(client, headers, a
 def test_mock_mode_does_not_count_calls(client, headers):
     for _ in range(3):
         client.post("/api/analyses", data={"text": "인도에 차가 올라와 있어요"}, headers=headers)
-    assert store.ai_usage == {}
-
+    assert count_rows(AiUsage) == 0
 
 # ---------------------------------------------------------------- 분석
 def test_analysis_is_assembled_in_spec_shape(client, headers, ai):
@@ -409,8 +408,8 @@ def _rehearse_sent_photo(client, headers, ai, parking_numbers: list[int]) -> tup
     a = analyze(client, headers, ai, out=_two_photo_analysis(parking_numbers), photos=2)
     assert a.status_code == 201, a.text
     photo_ids = [p["id"] for p in a.json()["input"]["photos"]]
-    store.photos[photo_ids[0]].data = b"photo-1-trash"  # 어느 사진이 갔는지 구분할 수 있게 바꿔요.
-    store.photos[photo_ids[1]].data = b"photo-2-parking"
+    set_photo_bytes(photo_ids[0], b"photo-1-trash")  # 어느 사진이 갔는지 구분할 수 있게 바꿔요.
+    set_photo_bytes(photo_ids[1], b"photo-2-parking")
     parking = next(r for r in make_reports(client, headers, a.json()["id"], ["trash_dumping", "illegal_parking"])
                    if r["type_id"] == "illegal_parking")
     ai.reply(_rehearsal_out())
@@ -434,7 +433,7 @@ def test_rehearsal_falls_back_to_first_photo_when_no_photo_numbers(client, heade
 def test_explicit_photo_id_wins_over_photo_numbers(client, headers, ai):
     a = analyze(client, headers, ai, out=_two_photo_analysis([2]), photos=2).json()
     first_id = a["input"]["photos"][0]["id"]
-    store.photos[first_id].data = b"photo-1-trash"
+    set_photo_bytes(first_id, b"photo-1-trash")
     parking = next(r for r in make_reports(client, headers, a["id"], ["illegal_parking"]))
     ai.reply(_rehearsal_out())
     r = client.post(f"/api/reports/{parking['id']}/rehearsals", json={"photo_id": first_id}, headers=headers)
@@ -527,7 +526,7 @@ def test_refusal_is_422_and_body_is_not_read(client, headers, ai):
     ai.reply(analysis_a(), stop_reason="refusal")
     r = client.post("/api/analyses", data={"text": "인도에 차가 올라와 있어요"}, headers=headers)
     assert r.status_code == 422 and r.json()["code"] == "ai_refused"
-    assert store.analyses == {}
+    assert count_rows(Analysis) == 0
 
 
 def _request() -> httpx.Request:
@@ -563,7 +562,7 @@ def test_ai_failures_are_502_and_logs_have_no_secrets(client, headers, ai, caplo
     assert "민감한 사용자 글" not in caplog.text
     assert "kind=authentication" in caplog.text and "kind=connection" in caplog.text
     # 실패한 호출은 분석도 사진도 남기지 않아요.
-    assert store.analyses == {} and store.photos == {}
+    assert count_rows(Analysis) == 0 and count_rows(Photo) == 0
 
 
 def test_empty_parsed_output_is_502(client, headers, ai):
@@ -631,7 +630,7 @@ def test_unsupported_files_are_415_without_ai_or_quota(client, headers, ai):
             "/api/analyses", data={"text": "x"}, files=[("photos", ("a.bin", data, ctype))], headers=headers
         )
         assert r.status_code == 415 and r.json()["code"] == "unsupported_media", ctype
-    assert ai.calls == [] and store.ai_usage == {}
+    assert ai.calls == [] and count_rows(AiUsage) == 0
 
 
 def test_photo_over_10mb_is_413(client, headers, ai):
@@ -640,7 +639,7 @@ def test_photo_over_10mb_is_413(client, headers, ai):
         "/api/analyses", data={"text": "x"}, files=[("photos", ("a.jpg", too_big, "image/jpeg"))], headers=headers
     )
     assert r.status_code == 413 and r.json()["code"] == "photo_too_large"
-    assert ai.calls == [] and store.ai_usage == {}
+    assert ai.calls == [] and count_rows(AiUsage) == 0
 
 
 def test_photo_over_10mb_is_413_in_mock_mode_too(client, headers):

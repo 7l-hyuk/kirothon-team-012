@@ -7,6 +7,7 @@ AI는 판단(요약, 근거, 판정, 문구)만 하고, 라벨, 접수처, 메�
 from datetime import datetime
 
 from fastapi import UploadFile
+from sqlmodel import Session
 
 from app.ai import analyze as analyze_ai
 from app.ai import draft as draft_ai
@@ -15,6 +16,7 @@ from app.ai import review as review_ai
 from app.errors import ai_unavailable, invalid_state, not_found, validation_error
 from app.mock import service as base
 from app.mock.fixtures import DISCLAIMER
+from app.models import Report
 from app.schemas.ai_outputs import AnalysisOutput, ReviewOutput, Tone
 from app.schemas.analyses import (
     AnalysisInput,
@@ -32,9 +34,9 @@ from app.schemas.reports import (
     RehearsalOut,
     SceneReview,
 )
-from app.services import photos, procedures, quota
+from app.services import photos, procedures, quota, store
 from app.services.procedures import Procedure
-from app.services.store import AnalysisRecord, ReportRecord, SceneMatch, store
+from app.services.store import SceneMatch
 
 UNSUPPORTED_MESSAGE = "아직 안내하지 못하는 유형이에요"
 NOT_REPORTABLE_TITLE = "신고가 어려운 상황이에요"
@@ -48,15 +50,19 @@ def _clean(value: str | None) -> str | None:
 
 # ---------------------------------------------------------------- 상황 분석
 def create_analysis(
-    device_id: str, text: str | None, address: str | None, files: list[UploadFile]
+    session: Session, device_id: str, text: str | None, address: str | None, files: list[UploadFile]
 ) -> AnalysisResponse:
     jpegs = [photos.prepare_upload(f) for f in files]  # 형식·용량 오류는 AI를 부르기 전에 끝냅니다.
     procs = procedures.load_procedures()
-    quota.consume_ai_call(device_id)
+    quota.consume_ai_call(session, device_id)
     out = analyze_ai.run(jpegs, text, address, procs)
 
-    refs = [photos.save_photo(device_id, data) for data in jpegs]  # 호출이 성공한 뒤에만 저장
     analysis_id = base.new_id()
+    # 호출이 성공한 뒤에만 저장소에 올리고 DB에 넣습니다.
+    rows = [
+        store.new_photo(device_id, data, analysis_id=analysis_id, order=n) for n, data in enumerate(jpegs, start=1)
+    ]
+    refs = [store.photo_ref(p) for p in rows]
     response, matches, item_photos = build_analysis_response(
         analysis_id=analysis_id,
         created_at=base.now_kst(),
@@ -66,9 +72,7 @@ def create_analysis(
         out=out,
         procs=procs,
     )
-    store.analyses[analysis_id] = AnalysisRecord(
-        analysis_id, device_id, response, scene_matches=matches, item_photo_ids=item_photos
-    )
+    store.save_analysis(session, device_id, response, matches, item_photos, rows)
     return response
 
 
@@ -186,7 +190,7 @@ def _to_review(out: ReviewOutput, scene_retake_tip: str) -> SceneReview:
 
 
 def upload_photo(
-    device_id: str, rec: ReportRecord, file: UploadFile, scene_id: str | None
+    session: Session, device_id: str, rec: Report, file: UploadFile, scene_id: str | None
 ) -> PhotoUploadOut:
     proc = procedures.get_procedure(rec.type_id)
     scene = None
@@ -198,17 +202,25 @@ def upload_photo(
     jpeg = photos.prepare_upload(file)
     review = None
     if scene is not None:  # scene_id가 없으면 검수하지 않고 보관만 합니다.
-        quota.consume_ai_call(device_id)
+        quota.consume_ai_call(session, device_id)
         review = _to_review(review_ai.run(jpeg, scene.label, scene.pass_criteria), scene.retake_tip)
 
-    ref = photos.save_photo(device_id, jpeg)
-    photo = ScenePhoto(id=ref.id, url=ref.url, scene_id=scene_id)
-    if scene is None:
-        rec.extra_photos.append(photo)
-    else:
-        state = rec.scenes[scene.scene_id]
-        state.photo = ref  # 같은 장면은 이전 사진을 대체
+    row = store.new_photo(  # 저장소에 올립니다. 실패하면 502이고 DB에는 아무것도 남지 않습니다.
+        device_id,
+        jpeg,
+        report_id=rec.id,
+        scene_id=scene_id,
+        review=review,
+        order=store.next_photo_order(session, rec.id),
+    )
+    session.add(row)
+    if scene is not None:
+        state = store.scene_state(rec, scene.scene_id)
+        state.photo_id = row.id  # 같은 장면은 이전 사진을 대체
         state.review = review
+        store.set_scene(rec, scene.scene_id, state)
+    session.commit()
+    photo = ScenePhoto(id=row.id, url=store.photo_url(row), scene_id=scene_id)
     return PhotoUploadOut(photo=photo, review=review, evidence=base._summary(rec))
 
 
@@ -251,14 +263,14 @@ def _check(key, status: ReviewStatus, labels: dict, fallback: dict, detail: str 
     )
 
 
-def rehearsal(device_id: str, rec: ReportRecord, photo_id: str | None) -> RehearsalOut:
+def rehearsal(session: Session, device_id: str, rec: Report, photo_id: str | None) -> RehearsalOut:
     if rec.type_id != "illegal_parking":
         raise invalid_state("불법주정차 건에서만 사전 점검을 할 수 있어요.")
-    analysis_rec = base.get_analysis_record(device_id, rec.analysis_id)
+    analysis_rec = base.get_analysis_record(session, device_id, rec.analysis_id)
     analysis = analysis_rec.response
     proc = procedures.get_procedure("illegal_parking")
 
-    candidates = [p.id for p in analysis.input.photos] + [p.id for p in base._report_photos(rec)]
+    candidates = [p.id for p in analysis.input.photos] + [p.id for p in base._report_photos(session, rec)]
     if photo_id is None:
         if not candidates:
             raise validation_error("사전 점검에는 사진이 필요해요. 사진을 먼저 올려 주세요.")
@@ -267,12 +279,13 @@ def rehearsal(device_id: str, rec: ReportRecord, photo_id: str | None) -> Rehear
         photo_id = parking_photos[0] if parking_photos else candidates[0]
     elif photo_id not in candidates:
         raise not_found()
-    record = store.photos.get(photo_id)
-    if record is None or record.device_id != device_id:
+    record = store.get_photo(session, photo_id)
+    if record is None or record.device_id != device_id or record.s3_key is None:
         raise not_found()
 
-    quota.consume_ai_call(device_id)
-    out = rehearsal_ai.run(record.data, proc)
+    data = store.read_photo_bytes(record)  # 분석 때 올린 사진을 저장소에서 다시 읽습니다.
+    quota.consume_ai_call(session, device_id)
+    out = rehearsal_ai.run(data, proc)
 
     zone_status: ReviewStatus = out.zone_status
     if out.zone is None and zone_status == "sufficient":  # 구역을 못 골랐는데 충분할 수는 없어요.
@@ -311,9 +324,12 @@ def rehearsal(device_id: str, rec: ReportRecord, photo_id: str | None) -> Rehear
         rec.zone = zone_def.zone_id
     if checks[0].status != "insufficient":
         scene = proc.evidence_scenes[0]
-        state = rec.scenes[scene.scene_id]
-        state.photo = PhotoRef(id=photo_id, url=photos.photo_url(photo_id))
+        state = store.scene_state(rec, scene.scene_id)
+        state.photo_id = photo_id
         state.review = SceneReview(status="sufficient", message="사전 점검을 마쳤어요")
+        store.set_scene(rec, scene.scene_id, state)
+    session.add(rec)
+    session.commit()
 
     return RehearsalOut(
         passed=all(c.status == "sufficient" for c in checks),
@@ -329,13 +345,13 @@ def _fmt_when(dt: datetime) -> str:
     return f"{dt.year}년 {dt.month}월 {dt.day}일 {'오전' if dt.hour < 12 else '오후'} {hour12}시 {dt.minute}분"
 
 
-def make_draft(device_id: str, rec: ReportRecord, tone: Tone) -> DraftOut:
-    analysis = base.get_analysis_record(device_id, rec.analysis_id).response
+def make_draft(session: Session, device_id: str, rec: Report, tone: Tone) -> DraftOut:
+    analysis = base.get_analysis_record(session, device_id, rec.analysis_id).response
     procs = procedures.load_procedures()
     item = next((i for i in analysis.items if i.type_id == rec.type_id), None)
     zone_def = procs[rec.type_id].zone(rec.zone)
 
-    quota.consume_ai_call(device_id)
+    quota.consume_ai_call(session, device_id)
     out = draft_ai.run(
         procs,
         type_id=rec.type_id,
@@ -352,4 +368,6 @@ def make_draft(device_id: str, rec: ReportRecord, tone: Tone) -> DraftOut:
     if not rec.location.address and LOCATION_PLACEHOLDER not in text:
         text = f"{LOCATION_PLACEHOLDER} {text}"  # 위치를 모르면 자리표시가 반드시 들어가게 합니다.
     rec.draft_text = text
+    session.add(rec)
+    session.commit()
     return DraftOut(text=text, tone=tone)

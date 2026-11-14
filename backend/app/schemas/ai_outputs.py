@@ -22,8 +22,9 @@ class AnalysisItemOut(BaseModel):
     label: str  # AI가 본 문제 이름. 목록 밖 유형일 때 안내 문구에 씁니다.
     reason: str  # 왜 신고가 되는지 (해요체, 한두 문장)
     zone: Zone | None  # 불법주정차만
+    # 증거 장면을 하나씩 검토해 올린 사진이 통과 기준을 채우면 넣습니다. photo_numbers와 별개입니다. 불법주정차는 항상 빈 목록
     satisfied_scenes: list[SceneMatchOut]
-    photo_numbers: list[int]  # 이 문제가 보이는 사진 번호 (1부터). 보이는 사진이 없으면 빈 목록
+    photo_numbers: list[int]  # 이 문제가 "보이는" 사진 번호 (1부터). 보이는 사진이 없으면 빈 목록
 
 
 class UnsupportedItemOut(BaseModel):

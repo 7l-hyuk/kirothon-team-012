@@ -1,7 +1,12 @@
-"""신고메이트 FastAPI 앱. ANTHROPIC_API_KEY가 없으면 가짜(mock) 응답, 있으면 Claude를 호출합니다."""
+"""신고메이트 FastAPI 앱. ANTHROPIC_API_KEY가 없으면 가짜(mock) 응답, 있으면 Claude를 호출합니다.
 
+상태는 PostgreSQL(SQLModel)과 사진 저장소(S3 또는 로컬 디스크)에 저장합니다.
+"""
+
+from contextlib import asynccontextmanager
 from pathlib import Path
 
+import anyio.to_thread
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 
@@ -10,13 +15,22 @@ from app.config import get_settings, is_mock
 from app.errors import ApiError, ErrorCode, register_error_handlers
 from app.routers import analyses, assets, photos, procedures, reports
 from app.services import procedures as procedure_data
+from app.storage import storage_kind
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # 테이블을 만듭니다. DB가 아직 준비되지 않았으면 2초 간격으로 최대 15번 시도합니다.
+    # 끝내 실패해도 앱은 뜨고, DB가 필요한 요청은 503(db_unavailable)으로 응답합니다.
+    await anyio.to_thread.run_sync(db.init_db)
+    yield
 
 
 def create_app(static_dir: str | Path | None = None) -> FastAPI:
     static_root = Path(static_dir or get_settings().static_dir)
     procedure_data.load_procedures()  # 절차 데이터 형식이 틀리면 여기서 시작을 멈춥니다.
 
-    app = FastAPI(title="신고메이트 API", version="0.2.0")
+    app = FastAPI(title="신고메이트 API", version="0.3.0", lifespan=lifespan)
     register_error_handlers(app)
 
     @app.middleware("http")
@@ -35,7 +49,12 @@ def create_app(static_dir: str | Path | None = None) -> FastAPI:
     @app.get("/api/health")
     def health() -> dict[str, str | bool]:
         # DB가 죽어 있어도 200입니다. 배포 스크립트의 상태 확인이 DB 때문에 막히지 않게 합니다.
-        return {"status": "ok", "db": "ok" if db.check_db() else "unavailable", "mock": is_mock()}
+        return {
+            "status": "ok",
+            "db": "ok" if db.check_db() else "unavailable",
+            "mock": is_mock(),
+            "storage": storage_kind(),
+        }
 
     if (static_root / "index.html").is_file():
         root = static_root.resolve()

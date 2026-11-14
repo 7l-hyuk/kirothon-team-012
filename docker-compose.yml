@@ -36,6 +36,10 @@ services:
       S3_BUCKET: ${S3_BUCKET:-}
       AWS_REGION: ${AWS_REGION:-ap-northeast-2}
       PRESIGN_EXPIRES_SECONDS: ${PRESIGN_EXPIRES_SECONDS:-3600}
+    # S3_BUCKET 없이 띄울 때(로컬 디스크 저장)도 컨테이너를 새로 만들어 사진이 사라지지 않게 합니다.
+    volumes:
+      - uploads:/app/uploads
 
 volumes:
   pgdata:
+  uploads:

@@ -1,7 +1,7 @@
 [project]
 name = "shingomate-backend"
 version = "0.2.0"
-description = "신고메이트 백엔드 (AI 호출 + 메모리 저장소. 키가 없으면 가짜 응답)"
+description = "신고메이트 백엔드 (AI 호출, PostgreSQL 저장, S3 사진 저장. 키가 없으면 가짜 응답)"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi",

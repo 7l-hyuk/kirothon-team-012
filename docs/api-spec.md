@@ -35,6 +35,8 @@
 | 422 | `ai_refused` | AI가 응답을 거절함. "다시 시도해 주세요" 안내 |
 | 429 | `daily_limit_exceeded` | 기기당 하루 AI 호출 상한 초과 |
 | 502 | `ai_unavailable` | AI 호출 실패 또는 시간 초과 |
+| 502 | `storage_unavailable` | 사진 저장소(S3, 로컬 디스크)에 쓰거나 읽지 못함 |
+| 503 | `db_unavailable` | DB에 연결하지 못함. 서버는 떠 있으니 잠시 뒤 다시 시도하면 됩니다 |
 
 다른 기기의 리소스는 `403`이 아니라 `404`로 응답합니다. 리소스가 있는지 알려 주지 않기 위해서입니다.
 
@@ -85,7 +87,7 @@
 | PUT | `/api/cases/{id}/like` | 도움돼요 누르기 | S13 |
 | DELETE | `/api/cases/{id}/like` | 도움돼요 취소 | S13 |
 | GET | `/api/procedures/{type_id}` | 신고 절차 데이터 조회 | S4, S7 |
-| GET | `/api/photos/{photo_id}/file` | 업로드 사진 조회 (임시, S3 도입 전까지. 9장 참고) | - |
+| GET | `/api/photos/{photo_id}/file` | 업로드 사진 조회 (로컬 디스크 저장일 때만. 9장 참고) | - |
 | GET | `/api/health` | 서버 상태 확인 | - |
 
 ---
@@ -685,10 +687,14 @@ S4의 증거 체크리스트입니다.
 ### GET `/api/health`
 
 ```json
-{ "status": "ok", "db": "ok", "mock": false }
+{ "status": "ok", "db": "ok", "mock": false, "storage": "s3" }
 ```
 
-`mock`은 `ANTHROPIC_API_KEY`가 비어 있으면 `true`입니다.
+| 필드 | 값 |
+|---|---|
+| `db` | `ok`: 실제로 DB에 연결해 `SELECT 1`이 됨. `unavailable`: 연결하지 못함. DB가 죽어 있어도 응답은 `200`입니다(배포 스크립트의 상태 확인이 DB 때문에 막히지 않게) |
+| `mock` | `ANTHROPIC_API_KEY`가 비어 있으면 `true` |
+| `storage` | 사진 저장소. `S3_BUCKET`이 있으면 `s3`, 없으면 `local` |
 
 ### 가짜(mock) 모드와 `X-Mock`
 
@@ -719,19 +725,26 @@ S4의 증거 체크리스트입니다.
 
 ### 사진 파일
 
-- 사진은 S3 비공개 버킷에 저장합니다. DB에는 S3 키만 둡니다.
-- API 응답의 사진 `url`은 요청 시점에 만든 presigned GET URL입니다. 1시간 뒤 만료되므로 프론트는 이 주소를 저장해 두지 않고, 필요할 때 API를 다시 호출합니다.
-- 이 문서의 예시에 나오는 `/uploads/....jpg`는 자리표시입니다. 실제 값은 `https://<버킷>.s3.ap-northeast-2.amazonaws.com/...?X-Amz-...` 형태입니다.
-- 내 신고의 사진은 `X-Device-Id`가 맞는 요청에만 `url`을 내려 줍니다. 공유하지 않은 사진은 다른 기기가 주소를 받을 수 없습니다.
-- 사례로 공유한 사진은 누구에게나 `url`을 내려 주며, 원본 그대로 공개됩니다.
-- `S3_BUCKET`이 없는 로컬 개발 환경에서는 백엔드가 디스크에 저장하고 자체 경로를 `url`로 돌려줍니다.
-
-**임시 방식 (S3로 바꾸기 전까지)**
-
-- 백엔드가 받은 사진을 긴 변 1568px 이하 JPEG로 줄여 프로세스 메모리에 두고, 응답의 `url`은 `GET /api/photos/{photo_id}/file`입니다. 재시작하면 사라집니다.
-- 이 경로는 `<img>`가 헤더를 보내지 못해 `X-Device-Id`를 검사하지 않습니다. 추측할 수 없는 UUID가 접근 열쇠입니다. 응답은 `image/jpeg`이고 없는 ID는 `404 not_found`입니다.
-- `ANTHROPIC_API_KEY`가 없는 가짜 모드에서는 사진을 저장하지 않고 `/api/mock/placeholder.svg`를 돌려줍니다.
+- 사진은 긴 변 1568px 이하 JPEG로 줄여 저장하고, 키는 `photos/{yyyy}/{mm}/{photo_id}.jpg`입니다. DB(`photos.s3_key`)에는 키만 두고 URL은 저장하지 않습니다.
+- `S3_BUCKET`이 있으면 S3 비공개 버킷에 저장하고, 응답의 사진 `url`은 요청 시점에 만든 presigned GET URL입니다(만료 `PRESIGN_EXPIRES_SECONDS`, 기본 1시간). 프론트는 이 주소를 저장해 두지 않고, 필요할 때 API를 다시 호출합니다.
+- 이 문서의 예시에 나오는 `/uploads/....jpg`는 자리표시입니다. S3 모드의 실제 값은 `https://<버킷>.s3.ap-northeast-2.amazonaws.com/photos/...?X-Amz-...` 형태입니다.
+- 내 신고의 사진은 `X-Device-Id`가 맞는 요청에만 `url`을 내려 줍니다. 사례로 공유한 사진은 누구에게나 `url`을 내려 주며, 원본 그대로 공개됩니다(사례 API는 아직 없습니다).
+- S3를 읽거나 쓰지 못하면 `502 storage_unavailable`입니다.
+- 같은 장면에 다시 올리면 증거 장면이 새 사진을 가리키고, 이전 사진은 신고 건의 `photos`에서 빠집니다. 이전 사진의 파일과 DB 행은 지우지 않습니다.
 - 업로드 검사: JPEG, PNG, WebP가 아니거나 이미지로 열 수 없으면 `415`, 10MB를 넘으면 `413`입니다.
+- `ANTHROPIC_API_KEY`가 없는 가짜 모드에서는 사진을 저장하지 않고 `url`이 `/api/mock/placeholder.svg`입니다. 사진 ID와 DB 행(`s3_key` 없음)은 남깁니다.
+
+**`GET /api/photos/{photo_id}/file`**
+
+- `S3_BUCKET`이 없는 로컬 개발 환경(`storage: "local"`)에서만 동작하며, 이때 응답의 사진 `url`이 이 경로입니다. 디스크(`UPLOAD_DIR`)에서 읽어 `image/jpeg`로 돌려줍니다.
+- `<img>`가 헤더를 보내지 못해 `X-Device-Id`를 검사하지 않습니다. 추측할 수 없는 UUID가 접근 열쇠입니다.
+- S3 모드(`storage: "s3"`)에서는 항상 `404 not_found`입니다. 없는 ID, 파일이 없는 가짜 모드 자리표시 사진, 지워진 파일도 `404`입니다.
+
+### 저장과 재시작
+
+- 분석, 신고 건, 사진, AI 호출 수는 PostgreSQL에 저장합니다. 서버를 재시작하거나 새로 배포해도 남습니다. 가짜 모드의 분석과 신고 건도 저장합니다.
+- 서버가 시작할 때 테이블을 만들고, DB가 아직 준비되지 않았으면 2초 간격으로 최대 15번 다시 시도합니다. 끝내 연결하지 못해도 서버는 뜨고, DB가 필요한 요청은 `503 db_unavailable`입니다. DB가 살아나면 재시작 없이 복구됩니다.
+- AI 호출 수는 기기 ID와 KST 날짜별로 셉니다. 날짜가 바뀌면 새로 셉니다.
 
 ### 배포 환경에서의 제약
 
