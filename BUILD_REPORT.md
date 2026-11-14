@@ -21,7 +21,7 @@ Spec 5개의 작업 목록(`tasks.md`)에는 완료 항목 136개와 남은 항�
 | 구현 | Spec (tasks) 실행 | 작업 목록대로 Kiro가 코드를 작성했습니다. 백엔드 뼈대와 가짜 API, Claude 연동 4개 기능(분석, 증거 검수, 사전 점검, 문구 대필), 4개 유형의 절차 데이터, PostgreSQL과 S3 저장, 사례 공유 API와 예시 사례입니다 | `backend/app/`, `backend/data/`, `Dockerfile`, `docker-compose.yml` |
 | 구현 | Spec (tasks) 실행 | 프론트 화면을 다시 그렸습니다. 디자인 토큰과 공통 CSS, 공통 부품, 홈을 유일한 시작점으로 하는 이동 흐름, 화면별 적용, 피드백 반영 순서로 진행했습니다 | `.kiro/specs/frontend-redesign/`, `frontend/src/styles/`, `frontend/src/components/`, `frontend/src/screens/` |
 | 구현 | Kiro CLI 채팅 | 화면을 써 보며 나온 피드백을 Spec 없이 대화로 반영했습니다. 신고 문구에서 위치 자리표시 제거(프롬프트, 서버, 테스트, `docs/api-spec.md`, `ai-assist` 요구사항을 함께 수정), 글자수 표시와 복사 아이콘, 신고 조회 카드의 이어서 하기 위치, 상태 문구에서 증거 개수 제거, 단계 표시 정렬입니다. 정렬은 헤드리스 크롬으로 번호 원과 이름의 중심 좌표를 측정해 확인했습니다 | PR #24, `frontend/src/screens/`, `backend/app/ai/prompts.py` |
-| 검증 | Spec (tasks) + 테스트 작성 | 인수 조건을 검증하는 백엔드 테스트 143개를 Kiro가 작성했습니다. SQLite 메모리 DB와 가짜 Claude 클라이언트로 돌아 외부 접속 없이 실행됩니다 | `backend/tests/` |
+| 검증 | Spec (tasks) + 테스트 작성 | 인수 조건을 검증하는 백엔드 테스트 149개를 Kiro가 작성했습니다. SQLite 메모리 DB와 가짜 Claude 클라이언트로 돌아 외부 접속 없이 실행됩니다 | `backend/tests/` |
 | 검증 | 코드 리뷰 반영 | 구현 뒤 실제 PostgreSQL, S3, Claude 호출로 동작을 확인하고, 찾은 문제를 Kiro에 전달해 수정하게 했습니다. 수정 내용은 각 Spec의 `tasks.md` 끝 "코드 리뷰 반영" 항목에 기록돼 있습니다 | `.kiro/specs/*/tasks.md` |
 | 기타 | Hooks | `backend/`의 Python 파일을 저장하면 `pytest`를 돌리고, 라우터나 스키마를 저장하면 `docs/api-spec.md`와 어긋난 곳을 찾고, 프론트의 API 호출 코드를 저장하면 명세와 비교합니다 | `.kiro/hooks/` |
 | 기타 | Steering 갱신 | 결정이 바뀔 때마다 Steering을 먼저 고쳤습니다. SQLite에서 PostgreSQL로, 디스크 저장에서 S3로, 직접 병합에서 PR 병합으로 바꾼 것이 모두 Steering에 반영돼 있습니다. 프론트의 화면 흐름을 다시 짤 때도 `product.md`의 화면 구조(S0~S14)를 함께 고쳤습니다 | `.kiro/steering/` |
