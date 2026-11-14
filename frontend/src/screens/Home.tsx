@@ -1,9 +1,10 @@
 // S1 상황 입력 (/report): 신고하기 1단계
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../app/store";
 import { TYPE_CARDS, type TypeIcon } from "../data/content";
 import { LIMITS } from "../api/analyses";
+import { listReports, type ReportListItem } from "../api/reports";
 import { Photo } from "../components/ui";
 import { AppBar } from "../components/AppBar";
 import { Stepper } from "../components/Stepper";
@@ -13,7 +14,14 @@ import { Camera, Car, ChevronRight, Cone, Gallery, Poster, Trash } from "../comp
 const TYPE_ICON: Record<TypeIcon, typeof Car> = { car: Car, trash: Trash, poster: Poster, cone: Cone };
 
 export function Home() {
-  const { s, set, send, toast } = useStore();
+  const { s, set, send, toast, resume } = useStore();
+  // 준비 중인 최근 건 1개. 없거나 불러오지 못하면 카드를 숨긴다.
+  const [pending, setPending] = useState<ReportListItem | null>(null);
+  useEffect(() => {
+    let live = true;
+    listReports("preparing", 1).then((r) => live && setPending(r.items.find((i) => i.resumable) ?? null)).catch(() => {});
+    return () => { live = false; };
+  }, []);
   const nav = useNavigate();
   const canSend = !!s.text.trim() || s.files.length > 0;
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -60,14 +68,18 @@ export function Home() {
 
         {s.fromCase && <div className="note">사례와 같은 유형(불법주정차)으로 시작해요.</div>}
 
-        <button className="resume" onClick={() => nav("/mine")}>
-          <Photo label="" className="photo-sm" />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="xs sub">이어서 하기</div>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>불법 광고물 · 증거 1/3</div>
-          </div>
-          <span className="sub"><ChevronRight size={18} /></span>
-        </button>
+        {pending && (
+          <button className="resume" onClick={() => resume(pending.id)}>
+            {pending.thumbnail_url
+              ? <img src={pending.thumbnail_url} alt="" className="photo photo-sm" style={{ objectFit: "cover", padding: 0 }} />
+              : <Photo label="" className="photo-sm" />}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="xs sub">이어서 하기</div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{pending.label} · {pending.status_label.replace(/^준비 중 · /, "")}</div>
+            </div>
+            <span className="sub"><ChevronRight size={18} /></span>
+          </button>
+        )}
 
         <div className="composer">
           {s.previews.length > 0 && (
