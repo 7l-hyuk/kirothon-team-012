@@ -94,7 +94,7 @@
 
 | 영역 | 사용 기술 |
 |---|---|
-| 백엔드 | Python 3.14, FastAPI, uv |
+| 백엔드 | Python 3.13, FastAPI, uv |
 | 프론트엔드 | React, Vite, TypeScript, Tailwind CSS |
 | AI | Claude Opus 5.5 (`claude-opus-5-5`, Anthropic Python SDK), 사진 분석과 신고 문구 작성 |
 | 데이터 | PostgreSQL + SQLModel, 신고 절차 데이터는 `backend/data/*.json` |
@@ -104,7 +104,7 @@
 
 ### 실행 방법
 
-Python 3.14, [uv](https://docs.astral.sh/uv/), Node.js 24, Docker가 필요합니다.
+Python 3.13 이상, [uv](https://docs.astral.sh/uv/), Node.js 24, Docker가 필요합니다.
 
 ```bash
 # 1. 의존성 설치
