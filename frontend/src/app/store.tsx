@@ -8,12 +8,17 @@
    - API 호출은 화면을 떠나거나 새로 시작하면(req 증가) 늦게 온 응답을 버린다. */
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { TYPE_CARDS } from "../data/content";
 import { createAnalysis, createReports, getAnalysis, type Analysis, type Category, type ReportRef, type TypeId } from "../api/analyses";
 import { getEvidence, getGuide, getReport, makeDraft, patchReport, rehearse, uploadPhoto, type Evidence, type Guide, type GuideStep, type Rehearsal, type SceneReview, type Tone } from "../api/reports";
 import { ApiError, errorMessage } from "../api/client";
 
 export type Scenario = "A" | "B";
-export type ResultChoice = "수용" | "불수용" | "아직 모름";
+
+/** S1 유형 카드의 예시 문장. 사례에서 같은 유형으로 시작할 때 쓴다. */
+const TYPE_EXAMPLE: Record<TypeId, string> = Object.fromEntries(
+  TYPE_CARDS.map((c) => [({ car: "illegal_parking", trash: "trash_dumping", poster: "illegal_ad", cone: "facility_damage" } as const)[c.icon], c.example]),
+) as Record<TypeId, string>;
 export type ReportStage = "evidence" | "rehearsal" | "guide" | "next";
 
 /** 이번 세션에 장면별로 마지막으로 올린 사진(미리보기)과 검수 결과. */
@@ -43,9 +48,9 @@ export interface FlowState {
   receipt: string;
   sec: number; timerTotal: number; timer: boolean; timerDone: boolean;
   filter: string; cfilter: string;
-  item: number; art: number; result: ResultChoice; reason: string;
-  agree: boolean; shareFrom: "done" | "detail"; helped: Record<number, boolean>;
-  toast: string; fromCase: boolean;
+  toast: string;
+  /** 사례의 "나도 비슷한 상황이에요"로 들어왔을 때 그 유형 이름 */
+  fromCase: string;
 }
 
 const base = (): FlowState => ({
@@ -56,7 +61,7 @@ const base = (): FlowState => ({
   rehearsal: null, rhBusy: false, rhError: "", rhNeedsPhoto: false, finished: [],
   guide: null, gIdx: 0, gError: "", filing: false, draftText: "", draftTone: "default", draftBusy: false, draftError: "", receipt: "",
   sec: 60, timerTotal: 60, timer: false, timerDone: false, filter: "전체", cfilter: "전체",
-  item: 1, art: 1, result: "수용", reason: "", agree: false, shareFrom: "done", helped: {}, toast: "", fromCase: false,
+  toast: "", fromCase: "",
 });
 
 const FAST = new URLSearchParams(window.location.search).has("fast");
@@ -92,9 +97,9 @@ interface Store {
   cancelTimer: () => void;
   timerShot: () => void;
   later: () => void;
-  openShare: (from: "done" | "detail") => void;
-  doShare: () => void;
-  startFromCase: () => void;
+  /** S14 공유 동의로 간다. 끝나면 back으로 돌아온다 */
+  openShare: (reportId: string, back: string) => void;
+  startFromCase: (typeId: TypeId, typeLabel: string) => void;
   /** 신고 조회나 S1에서 준비 중인 건을 이어서 한다 */
   resume: (reportId: string) => void;
   n: number;
@@ -148,7 +153,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const cur = sr.current;
     const text = cur.text.trim();
     if (!text && !cur.files.length) return;
-    setS({ ...base(), helped: cur.helped, text: cur.text, files: cur.files, previews: cur.previews, sent: text || "이거 신고할 수 있나요?" });
+    setS({ ...base(), text: cur.text, files: cur.files, previews: cur.previews, sent: text || "이거 신고할 수 있나요?" });
     nav("/chat");
     void analyze(text, cur.files);
   }, [nav, analyze]);
@@ -437,7 +442,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!alive(id)) return;
       const reports = chain.map((r) => ({ id: r.id, type_id: r.type_id, sequence: r.sequence, status: r.status }));
       const next: FlowState = {
-        ...base(), helped: sr.current.helped, analysis: a, scen: "A", p: 3, total: first.total,
+        ...base(), analysis: a, scen: "A", p: 3, total: first.total,
         sent: a.input.text || "이거 신고할 수 있나요?", selected: reports.map((r) => r.type_id), reports,
       };
       setS(next);
@@ -452,12 +457,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [clear, nav, toast, loadGuide, enterReport]);
 
-  const openShare = useCallback((from: "done" | "detail") => { set({ shareFrom: from, agree: false }); nav("/share"); }, [set, nav]);
-  const doShare = useCallback(() => { if (!sr.current.agree) return; nav("/cases"); toast("사례로 공유했어요"); }, [nav, toast]);
-  const startFromCase = useCallback(() => {
-    setS({ ...base(), helped: sr.current.helped, fromCase: true, text: "인도에 차가 올라와 있어요" });
+  const openShare = useCallback((reportId: string, back: string) => { nav(`/share/${reportId}`, { state: { back } }); }, [nav]);
+  // 사례와 같은 유형의 예시 문장으로 S1을 시작한다(사진은 사용자가 올린다).
+  const startFromCase = useCallback((typeId: TypeId, typeLabel: string) => {
+    leave();
+    setS({ ...base(), fromCase: typeLabel, text: TYPE_EXAMPLE[typeId] ?? "" });
     nav("/report");
-  }, [nav]);
+  }, [leave, nav]);
 
   const r = s.p === 3 ? s.reports[s.cur] : undefined;
   const current = useMemo(() => {
@@ -469,9 +475,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Store>(() => ({
     s, set, toast, send, retry, toggleItem, goHome, toLanding, startPrep, current,
     reloadEvidence, shoot, toGuide, runRehearsal: () => void runRehearsal(), rehearsalPhoto, completeReport, nextReport, skipReport,
-    loadGuide, gPrev, gAction, gNext, redraft, startTimer, cancelTimer, timerShot, later, openShare, doShare, startFromCase, resume, n,
+    loadGuide, gPrev, gAction, gNext, redraft, startTimer, cancelTimer, timerShot, later, openShare, startFromCase, resume, n,
   }), [s, set, toast, send, retry, toggleItem, goHome, toLanding, startPrep, current, reloadEvidence, shoot, toGuide, runRehearsal,
-    rehearsalPhoto, completeReport, nextReport, skipReport, loadGuide, gPrev, gAction, gNext, redraft, startTimer, cancelTimer, timerShot, later, openShare, doShare, startFromCase, resume, n]);
+    rehearsalPhoto, completeReport, nextReport, skipReport, loadGuide, gPrev, gAction, gNext, redraft, startTimer, cancelTimer, timerShot, later, openShare, startFromCase, resume, n]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
