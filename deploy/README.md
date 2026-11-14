@@ -49,6 +49,40 @@ ENV
 sudo chmod 600 /opt/shingomate/.env
 ```
 
+## S3 버킷 CORS
+
+접수 안내의 "사진 저장" 버튼은 화면의 스크립트가 S3 presigned URL에서 사진 파일을 받아 휴대폰 공유 시트로 넘깁니다. 이 요청은 서비스 도메인에서 S3 도메인으로 가므로 버킷에 CORS 규칙이 있어야 합니다. `<img>` 태그로 사진을 보여 주는 데는 필요하지 않습니다.
+
+사진 버킷에 아래 규칙이 적용돼 있습니다. 레포의 코드로 관리되지 않는 AWS 설정이라, 버킷을 새로 만들면 다시 넣어야 합니다.
+
+```json
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": [
+        "https://www.room2ate.cloud",
+        "https://d2b992irefoevf.cloudfront.net",
+        "http://localhost:5173"
+      ],
+      "AllowedMethods": ["GET", "HEAD"],
+      "AllowedHeaders": ["*"],
+      "MaxAgeSeconds": 3600
+    }
+  ]
+}
+```
+
+위 내용을 `cors.json`으로 저장한 뒤 적용하고 확인합니다.
+
+```bash
+aws s3api put-bucket-cors --bucket <버킷_이름> --cors-configuration file://cors.json
+aws s3api get-bucket-cors --bucket <버킷_이름>
+```
+
+- 읽기(`GET`, `HEAD`)만 허용합니다. 업로드는 백엔드가 하므로 `PUT`은 열지 않습니다.
+- 버킷의 공개 여부는 바뀌지 않습니다. 퍼블릭 액세스 차단은 그대로 켜 두고, 사진은 서명이 붙은 주소로만 열립니다.
+- 서비스 주소가 바뀌거나 늘면 `AllowedOrigins`에 추가합니다.
+
 ## 수동 배포
 
 Actions를 거치지 않고 서버에서 바로 실행할 수 있습니다.
