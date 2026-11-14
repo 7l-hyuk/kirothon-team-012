@@ -9,7 +9,7 @@ import { Photo } from "../components/ui";
 import { AppBar } from "../components/AppBar";
 import { Stepper } from "../components/Stepper";
 import { WaveBackdrop } from "../components/motifs/WaveBackdrop";
-import { Camera, Car, ChevronRight, Cone, Gallery, Poster, Trash } from "../components/icons/Icons";
+import { Camera, Car, ChevronRight, Close, Cone, Gallery, Poster, Trash } from "../components/icons/Icons";
 
 const TYPE_ICON: Record<TypeIcon, typeof Car> = { car: Car, trash: Trash, poster: Poster, cone: Cone };
 
@@ -85,9 +85,9 @@ export function Home() {
           {s.previews.length > 0 && (
             <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
               {s.previews.map((src, i) => (
-                <div key={src} className="col" style={{ gap: 2, alignItems: "center" }}>
+                <div key={src} className="thumb">
                   <img src={src} alt={`올린 사진 ${i + 1}`} className="photo photo-md" style={{ objectFit: "cover", padding: 0 }} />
-                  <button className="link" style={{ minHeight: 32, color: "var(--sub)" }} onClick={() => removeFile(i)}>빼기</button>
+                  <button className="thumb-x" aria-label={`사진 ${i + 1} 빼기`} onClick={() => removeFile(i)}><Close size={12} stroke={2.6} /></button>
                 </div>
               ))}
             </div>

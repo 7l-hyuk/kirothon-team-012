@@ -134,6 +134,10 @@ svg { flex: none; }
 .photo { border-radius: 10px; background: repeating-linear-gradient(135deg, #e8ecf5 0 6px, #d9e0ee 6px 12px); display: flex; align-items: center; justify-content: center; font: 10px ui-monospace, Menlo, monospace; color: var(--sub); text-align: center; padding: 6px; }
 .photo-sm { width: 44px; height: 44px; }
 .photo-md { width: 64px; height: 64px; }
+/* S1 첨부 사진: 오른쪽 위 작은 × 버튼. 보이는 원은 22px, 누르는 영역은 40px */
+.thumb { position: relative; flex: none; }
+.thumb-x { position: absolute; top: -7px; right: -7px; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--ink); color: #fff; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); padding: 0; }
+.thumb-x::before { content: ""; position: absolute; inset: -9px; }
 .photo-chat { width: 150px; height: 110px; border-radius: 12px; font-size: 11px; padding: 8px; }
 .photo-wide { height: 140px; border-radius: 12px; font-size: 11px; }
 .photo-grow { flex: 1; height: 96px; }
