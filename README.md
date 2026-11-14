@@ -2,7 +2,7 @@
 
 길에서 불법주정차나 쓰레기 무단투기를 보고도 "이게 신고가 되나, 어디에 하나" 몰라서 지나치는 사람에게, 사진 한 장으로 신고 가능 여부를 알려 주고 반려되지 않게 증거 준비와 접수 과정을 끝까지 안내하는 AI 어시스턴스입니다.
 
-**Demo:** <!-- 배포 주소 또는 데모 영상 링크(YouTube 일부 공개 등). 영상 파일은 레포에 올리지 마세요. -->
+**Demo:** https://www.room2ate.cloud (배포된 서비스. 휴대폰 브라우저에서 열면 카메라로 바로 촬영할 수 있습니다)
 
 ---
 
@@ -43,13 +43,20 @@
 
 | 기능 | 해결하는 불편 | 코드 위치 |
 |---|---|---|
-| 상황 분석과 신고 항목 제안: 사진이나 글을 올리면 신고·민원 가능한 항목을 체크박스로 보여 주고, 안 되는 경우는 이유를 알려 줍니다 | "이게 신고가 되는지", "어느 기관에 해야 하는지" 모름 | <!-- 구현 후 작성 --> |
-| 증거 사진 안내와 검수: 항목별로 필요한 장면을 알려 주고, 올린 사진이 부족하면 무엇이 부족한지와 어떻게 다시 찍을지 안내합니다 | "어떤 자료를 내야 하는지" 모름, 요건 미달 반려 | <!-- 구현 후 작성 --> |
-| 불법주정차 사전 점검과 1분 타이머: 금지구역·번호판·배경을 미리 확인하고, 같은 위치에서 1분 간격 2장을 찍도록 타이머로 돕습니다 | 불법주정차 사진 요건 미달 반려 | <!-- 구현 후 작성 --> |
-| 단계별 접수 안내와 문구 대필: 접속, 메뉴 선택, 항목별 입력값을 한 단계씩 안내하고 신고 내용을 대신 써 줍니다 | "어느 사이트나 앱으로", "무엇을 적어야 하는지" 모름 | <!-- 구현 후 작성 --> |
-| 여러 건 이어서 신고: 이미 찍은 사진과 끝낸 단계는 건너뜁니다 | 건마다 같은 과정을 반복 | <!-- 구현 후 작성 --> |
-| 내 신고 내역: 준비 중, 접수 완료, 처리 결과를 한곳에서 봅니다 | 신고한 뒤 무엇을 했는지 잊어버림 | <!-- 구현 후 작성 --> |
-| 사례 공유: 동의한 신고 내역을 사례 글로 공유합니다. 주소는 구 단위, 날짜는 월 단위로 줄이고 접수번호는 지웁니다 | 다른 사람이 어떻게 신고해서 어떤 결과를 받았는지 알 수 없음 | <!-- 구현 후 작성 --> |
+| 상황 분석과 신고 항목 제안: 사진이나 글을 올리면 신고·민원 가능한 항목을 체크박스로 보여 주고, 안 되는 경우는 이유를 알려 줍니다 | "이게 신고가 되는지", "어느 기관에 해야 하는지" 모름 | `backend/app/ai/analyze.py`, `backend/app/routers/analyses.py`, `frontend/src/screens/Home.tsx`, `Chat.tsx` |
+| 증거 사진 안내와 검수: 항목별로 필요한 장면을 알려 주고, 올린 사진이 부족하면 무엇이 부족한지와 어떻게 다시 찍을지 안내합니다 | "어떤 자료를 내야 하는지" 모름, 요건 미달 반려 | `backend/app/ai/review.py`, `backend/data/*.json`(증거 장면과 통과 기준), `frontend/src/screens/ReportFlow.tsx` |
+| 불법주정차 사전 점검과 1분 타이머: 금지구역·번호판·배경을 미리 확인하고, 같은 위치에서 1분 간격 2장을 찍도록 타이머로 돕습니다 | 불법주정차 사진 요건 미달 반려 | `backend/app/ai/rehearsal.py`, `backend/data/illegal_parking.json`, `frontend/src/screens/TimerOverlay.tsx` |
+| 단계별 접수 안내와 문구 대필: 접속, 메뉴 선택, 항목별 입력값을 한 단계씩 안내하고 신고 내용을 대신 써 줍니다 | "어느 사이트나 앱으로", "무엇을 적어야 하는지" 모름 | `backend/app/services/guide.py`, `backend/app/ai/draft.py`, `frontend/src/screens/ReportFlow.tsx` |
+| 여러 건 이어서 신고: 이미 찍은 사진과 끝낸 단계는 건너뜁니다 | 건마다 같은 과정을 반복 | `backend/app/services/guide.py`(끝낸 단계 건너뛰기), `backend/app/services/assist.py`(분석 사진으로 증거 장면 채우기) |
+| 내 신고 내역: 준비 중, 접수 완료, 처리 결과를 한곳에서 봅니다 | 신고한 뒤 무엇을 했는지 잊어버림 | `backend/app/routers/reports.py`, `backend/app/services/store.py`, `frontend/src/screens/Mine.tsx` |
+| 사례 공유: 동의한 신고 내역을 사례 글로 공유합니다. 주소는 구 단위, 날짜는 월 단위로 줄이고 접수번호는 지웁니다 | 다른 사람이 어떻게 신고해서 어떤 결과를 받았는지 알 수 없음 | `backend/app/services/cases.py`, `backend/app/ai/case.py`, `frontend/src/screens/Cases.tsx`, `Share.tsx` |
+
+### 현재 한계
+
+- **접수 단계의 메뉴 이름은 안전신문고 실제 화면과 대조하지 못했습니다.** 화면에는 "실제 화면과 다를 수 있어요"가 표시됩니다. 접수처, 증거 장면, 촬영 요건은 `backend/data/*.json`에 두고 서버가 조립하며, AI는 그 데이터 안에서 판정만 합니다.
+- **접수는 사용자가 안전신문고에서 직접 합니다.** 대리 접수와 처리 결과 연동은 없고, 처리 결과는 사용자가 입력합니다.
+- **사례로 공유한 사진은 가리지 않고 원본 그대로 공개됩니다.** 공유 전 화면에서 이 사실을 알립니다. 글에서는 주소를 구 단위, 날짜를 월 단위로 줄이고 접수번호를 뺍니다.
+- **다루는 유형은 4가지입니다.** 불법주정차(6대 금지구역), 쓰레기 무단투기, 불법 광고물, 도로·시설물 파손. 그 밖의 문제는 "아직 안내하지 못하는 유형"으로 표시합니다.
 
 ## 3. 사용 시나리오
 
@@ -95,12 +102,13 @@
 | 영역 | 사용 기술 |
 |---|---|
 | 백엔드 | Python 3.13, FastAPI, uv |
-| 프론트엔드 | React, Vite, TypeScript, Tailwind CSS |
+| 프론트엔드 | React 19, Vite, TypeScript, React Router |
 | AI | Claude Opus 5.5 (`claude-opus-5-5`, Anthropic Python SDK), 사진 분석과 신고 문구 작성 |
 | 데이터 | PostgreSQL + SQLModel, 신고 절차 데이터는 `backend/data/*.json` |
 | 사진 저장 | Amazon S3 비공개 버킷, 조회는 presigned URL |
 | 사용자 구분 | 로그인 없이 익명 기기 ID |
 | 배포 | AWS EC2 1대에 Docker Compose (FastAPI + PostgreSQL), HTTPS는 CloudFront |
+| CI/CD | GitHub Actions. PR마다 테스트와 빌드 검사, `main` 병합 시 자동 배포 |
 
 ### 실행 방법
 
@@ -117,14 +125,22 @@ echo "ANTHROPIC_API_KEY=발급받은_키" > backend/.env
 # 3. 로컬 DB 실행 (PostgreSQL)
 docker compose up -d db
 
-# 4. 실행 (터미널 2개)
+# 4. 프론트가 로컬 백엔드를 보도록 설정 (frontend/.env.local, 커밋하지 않습니다)
+echo "API_PROXY_TARGET=http://localhost:8000" > frontend/.env.local
+
+# 5. 실행 (터미널 2개)
 cd backend && uv run uvicorn app.main:app --reload --port 8000
 cd frontend && npm run dev
 ```
 
-브라우저에서 http://localhost:5173 을 엽니다. 프론트의 `/api` 요청은 Vite 프록시가 백엔드(8000번 포트)로 넘깁니다.
+브라우저에서 http://localhost:5173 을 엽니다. 프론트의 `/api` 요청은 Vite 프록시가 백엔드로 넘깁니다.
 
-`S3_BUCKET`을 설정하지 않으면 사진은 로컬 `backend/uploads/`에 저장됩니다.
+- 4번을 건너뛰면 프론트 개발 서버는 배포된 서버(`https://www.room2ate.cloud`)의 API를 씁니다. 화면만 고칠 때는 백엔드를 띄우지 않아도 됩니다.
+- `ANTHROPIC_API_KEY`가 없으면 백엔드는 고정된 가짜 응답으로 동작합니다. `GET /api/health`의 `mock` 값으로 확인할 수 있습니다.
+- `S3_BUCKET`을 설정하지 않으면 사진은 로컬 `backend/uploads/`에 저장됩니다.
+- 5432번 포트를 다른 PostgreSQL이 쓰고 있으면 `DB_PORT=5433 docker compose up -d db`로 띄우고 `backend/.env`에 `DATABASE_URL=postgresql+psycopg://shingo:shingo-local@localhost:5433/shingomate`를 넣습니다.
+
+API 명세는 [`docs/api-spec.md`](docs/api-spec.md)에 있고, 실행 중인 서버의 `/docs`에서 직접 호출해 볼 수 있습니다.
 
 ### 배포 구성
 
@@ -135,11 +151,21 @@ cd frontend && npm run dev
                                         app ──> S3 (사진), Claude API
 ```
 
-서버에서는 `docker compose up -d --build` 한 번으로 앱과 DB를 함께 띄웁니다. S3 접근 권한은 EC2의 IAM 역할로 주고, 액세스 키는 서버에 두지 않습니다.
+`main`에 병합되면 GitHub Actions가 서버에서 `docker compose up -d --build`를 실행해 앱과 DB를 함께 띄웁니다. S3 접근 권한은 EC2의 IAM 역할로 주고, 액세스 키는 서버와 GitHub 어디에도 두지 않습니다. 자세한 내용은 [`deploy/README.md`](deploy/README.md)에 있습니다.
 
 ## 7. 테스트
 
-<!-- 테스트 실행 방법을 써 주세요. 테스트가 없다면 위 Demo 링크를 꼭 채워 주세요. -->
+```bash
+# 백엔드 테스트 (137개)
+cd backend && uv run pytest
+
+# 프론트 타입 검사와 빌드
+cd frontend && npm run build
+```
+
+- 백엔드 테스트는 SQLite 메모리 DB, 임시 폴더, 가짜 Claude 클라이언트로 실행됩니다. PostgreSQL, S3, API 키 없이 돌아갑니다.
+- 검증하는 내용: 분석·증거 검수·사전 점검·대필의 응답 조립, 4개 유형 밖의 판정 처리, AI 거절(422)과 호출 실패(502), 하루 호출 상한(429), 다른 기기의 신고 건 접근 차단(404), 재시작 후 데이터 유지, 사례 공유의 비식별화(AI에 상세 주소·접수번호·일 단위 날짜를 넘기지 않음).
+- PR을 올리면 GitHub Actions(`.github/workflows/ci.yml`)가 백엔드 테스트, 프론트 빌드, 배포 이미지 빌드를 자동으로 실행합니다.
 
 ---
 
