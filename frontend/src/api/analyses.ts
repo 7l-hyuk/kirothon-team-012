@@ -48,6 +48,10 @@ export function createAnalysis(text: string, photos: File[], signal?: AbortSigna
   return api<Analysis>("/api/analyses", { method: "POST", body: form, signal });
 }
 
+export function getAnalysis(id: string): Promise<Analysis> {
+  return api<Analysis>(`/api/analyses/${id}`);
+}
+
 /** S3에서 고른 항목으로 신고 건 생성. 배열 순서가 진행 순서(sequence)다. */
 export function createReports(analysisId: string, typeIds: TypeId[]): Promise<CreateReportsResponse> {
   return api<CreateReportsResponse>(`/api/analyses/${analysisId}/reports`, { method: "POST", body: { type_ids: typeIds } });

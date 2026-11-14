@@ -8,8 +8,8 @@
    - API 호출은 화면을 떠나거나 새로 시작하면(req 증가) 늦게 온 응답을 버린다. */
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { createAnalysis, createReports, type Analysis, type Category, type ReportRef, type TypeId } from "../api/analyses";
-import { getEvidence, getGuide, makeDraft, patchReport, rehearse, uploadPhoto, type Evidence, type Guide, type GuideStep, type Rehearsal, type SceneReview, type Tone } from "../api/reports";
+import { createAnalysis, createReports, getAnalysis, type Analysis, type Category, type ReportRef, type TypeId } from "../api/analyses";
+import { getEvidence, getGuide, getReport, makeDraft, patchReport, rehearse, uploadPhoto, type Evidence, type Guide, type GuideStep, type Rehearsal, type SceneReview, type Tone } from "../api/reports";
 import { ApiError, errorMessage } from "../api/client";
 
 export type Scenario = "A" | "B";
@@ -32,6 +32,8 @@ export interface FlowState {
   p: number; phase: 0 | 1;
   /** 신고 건 진행 */
   cur: number; rstage: ReportStage;
+  /** 같은 분석에서 만든 신고 건 수. 이어서 하기로 들어오면 reports보다 클 수 있다 */
+  total: number;
   evidence: Evidence | null; evError: string; uploading: string; shots: Record<string, Shot>;
   rehearsal: Rehearsal | null; rhBusy: boolean; rhError: string; rhNeedsPhoto: boolean;
   finished: Finished[];
@@ -50,7 +52,7 @@ const base = (): FlowState => ({
   text: "", sent: "", scen: "A", files: [], previews: [],
   analysis: null, analysisError: "", selected: [], reports: [], creating: false,
   p: 0, phase: 0,
-  cur: 0, rstage: "evidence", evidence: null, evError: "", uploading: "", shots: {},
+  cur: 0, rstage: "evidence", total: 0, evidence: null, evError: "", uploading: "", shots: {},
   rehearsal: null, rhBusy: false, rhError: "", rhNeedsPhoto: false, finished: [],
   guide: null, gIdx: 0, gError: "", filing: false, draftText: "", draftTone: "default", draftBusy: false, draftError: "", receipt: "",
   sec: 60, timerTotal: 60, timer: false, timerDone: false, filter: "전체", cfilter: "전체",
@@ -93,6 +95,8 @@ interface Store {
   openShare: (from: "done" | "detail") => void;
   doShare: () => void;
   startFromCase: () => void;
+  /** 신고 조회나 S1에서 준비 중인 건을 이어서 한다 */
+  resume: (reportId: string) => void;
   n: number;
 }
 
@@ -222,7 +226,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const r = await createReports(cur.analysis.id, cur.selected);
       if (!alive(id)) return;
       const reports = [...r.reports].sort((a, b) => a.sequence - b.sequence);
-      set({ reports, creating: false, p: 3, finished: [] });
+      set({ reports, total: r.total, creating: false, p: 3, finished: [] });
       sr.current = { ...sr.current, reports };
       enterReport(0);
     } catch (e) {
@@ -417,6 +421,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (next) toast(`${labelOf(next.type_id).label}은 준비 중으로 남겨 뒀어요`);
   }, [nav, toast, labelOf]);
 
+  const resume = useCallback(async (reportId: string) => {
+    const id = ++req.current;
+    clear();
+    try {
+      const first = await getReport(reportId);
+      const a = await getAnalysis(first.analysis_id);
+      // 이 건부터 같은 분석의 남은 건을 next_report_id로 따라간다.
+      const chain = [first];
+      for (let nx = first.next_report_id; nx && chain.length < 8; ) {
+        const r = await getReport(nx);
+        chain.push(r);
+        nx = r.next_report_id;
+      }
+      if (!alive(id)) return;
+      const reports = chain.map((r) => ({ id: r.id, type_id: r.type_id, sequence: r.sequence, status: r.status }));
+      const next: FlowState = {
+        ...base(), helped: sr.current.helped, analysis: a, scen: "A", p: 3, total: first.total,
+        sent: a.input.text || "이거 신고할 수 있나요?", selected: reports.map((r) => r.type_id), reports,
+      };
+      setS(next);
+      sr.current = next;
+      nav("/chat");
+      const done = first.evidence_progress.required > 0 && first.evidence_progress.done >= first.evidence_progress.required;
+      // 증거를 다 모은 건은 접수 안내로 바로 간다(안내는 current_step 다음 단계부터 보여 준다).
+      if (done && first.type_id === "illegal_parking") void loadGuide();
+      else enterReport(0);
+    } catch (e) {
+      if (alive(id)) toast(errorMessage(e));
+    }
+  }, [clear, nav, toast, loadGuide, enterReport]);
+
   const openShare = useCallback((from: "done" | "detail") => { set({ shareFrom: from, agree: false }); nav("/share"); }, [set, nav]);
   const doShare = useCallback(() => { if (!sr.current.agree) return; nav("/cases"); toast("사례로 공유했어요"); }, [nav, toast]);
   const startFromCase = useCallback(() => {
@@ -434,9 +469,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Store>(() => ({
     s, set, toast, send, retry, toggleItem, goHome, toLanding, startPrep, current,
     reloadEvidence, shoot, toGuide, runRehearsal: () => void runRehearsal(), rehearsalPhoto, completeReport, nextReport, skipReport,
-    loadGuide, gPrev, gAction, gNext, redraft, startTimer, cancelTimer, timerShot, later, openShare, doShare, startFromCase, n,
+    loadGuide, gPrev, gAction, gNext, redraft, startTimer, cancelTimer, timerShot, later, openShare, doShare, startFromCase, resume, n,
   }), [s, set, toast, send, retry, toggleItem, goHome, toLanding, startPrep, current, reloadEvidence, shoot, toGuide, runRehearsal,
-    rehearsalPhoto, completeReport, nextReport, skipReport, loadGuide, gPrev, gAction, gNext, redraft, startTimer, cancelTimer, timerShot, later, openShare, doShare, startFromCase, n]);
+    rehearsalPhoto, completeReport, nextReport, skipReport, loadGuide, gPrev, gAction, gNext, redraft, startTimer, cancelTimer, timerShot, later, openShare, doShare, startFromCase, resume, n]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

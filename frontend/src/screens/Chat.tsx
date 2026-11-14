@@ -23,7 +23,10 @@ export function Chat() {
   }, [key]);
 
   const stage = s.p <= 1 ? 0 : s.p === 2 ? 1 : s.rstage === "guide" || s.rstage === "next" ? 3 : 2;
-  const countLabel = s.p >= 3 && s.reports.length ? `${s.cur + 1}/${s.reports.length}건` : "";
+  const r = s.reports[s.cur];
+  const countLabel = s.p >= 3 && r ? `${r.sequence}/${s.total || s.reports.length}건` : "";
+  // 이어서 하기로 들어오면 미리보기 대신 서버에 올린 사진을 보여 준다.
+  const pics = s.previews.length ? s.previews : (an?.input.photos ?? []).map((p) => p.url);
 
   // 아래로 스크롤하면 단계 표시를 얇게 줄인다.
   // 줄이면 대화 영역이 약 40px 커지므로, 스크롤 여유가 충분할 때만 줄여 깜빡임을 막는다.
@@ -45,9 +48,9 @@ export function Chat() {
 
       <div ref={ref} className="chat-body" onScroll={onScroll}>
         <div className="me">
-          {s.previews.length > 0 && (
+          {pics.length > 0 && (
             <div className="row" style={{ gap: 6, justifyContent: "flex-end", flexWrap: "wrap" }}>
-              {s.previews.map((src, i) => <img key={src} src={src} alt={`올린 사진 ${i + 1}`} className="photo photo-chat" style={{ objectFit: "cover", padding: 0 }} />)}
+              {pics.map((src, i) => <img key={src} src={src} alt={`올린 사진 ${i + 1}`} className="photo photo-chat" style={{ objectFit: "cover", padding: 0 }} />)}
             </div>
           )}
           <div className="bubble">{s.sent}</div>

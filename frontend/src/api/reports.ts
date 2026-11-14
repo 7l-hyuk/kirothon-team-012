@@ -167,6 +167,8 @@ export function getReport(reportId: string): Promise<Report> {
   return api<Report>(`/api/reports/${reportId}`);
 }
 
-export function listReports(status?: ReportStatus): Promise<{ items: ReportListItem[]; next_cursor: string | null }> {
-  return api(`/api/reports${status ? `?status=${status}` : ""}`);
+export function listReports(status?: ReportStatus, limit = 20): Promise<{ items: ReportListItem[]; next_cursor: string | null }> {
+  const q = new URLSearchParams({ limit: String(limit) });
+  if (status) q.set("status", status);
+  return api(`/api/reports?${q}`);
 }

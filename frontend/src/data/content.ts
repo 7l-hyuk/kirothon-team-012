@@ -19,13 +19,6 @@ export const TYPE_CARDS: { icon: TypeIcon; title: string; desc: string; example:
   { icon: "cone", title: "시설물 파손", desc: "보도블록, 가로등 등", example: "도로나 시설물이 파손돼 있어요" },
 ];
 
-export type MineGroup = "준비 중" | "접수 완료" | "처리 완료";
-export interface MineItem { id: number; type: string; place: string; status: string; g: MineGroup; to: string; no: string; cont?: boolean }
-export const MINE: MineItem[] = [
-  { id: 0, type: "불법주정차 (인도)", place: "마포구 서교동 · 11월 14일", status: "접수 완료", g: "접수 완료", to: "안전신문고 > 불법주정차", no: "입력 안 함" },
-  { id: 1, type: "쓰레기 무단투기", place: "마포구 서교동 · 11월 14일", status: "처리 완료 · 수용", g: "처리 완료", to: "안전신문고 > 생활불편", no: "SPP-2611-014273" },
-  { id: 2, type: "불법 광고물", place: "마포구 합정동 · 11월 12일", status: "준비 중 · 증거 1/3", g: "준비 중", cont: true, to: "안전신문고 > 생활불편", no: "접수 전" },
-];
 export const MINE_FILTERS = ["전체", "준비 중", "접수 완료", "처리 완료"] as const;
 
 export interface Article { id: number; title: string; type: string; cat: string; result: string; gu: string; when: string; likes: number; photo: string; sec: string[] }
