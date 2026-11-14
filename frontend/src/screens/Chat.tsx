@@ -11,9 +11,11 @@ export function Chat() {
   const st = useStore();
   const { s, set, n } = st;
   const A = s.scen === "A";
+  const an = s.analysis;
+  const [why, setWhy] = useState<Record<string, boolean>>({});
   const ref = useRef<HTMLDivElement>(null);
 
-  const key = [s.p, s.busy, s.s7, s.draft, s.phase].join("|");
+  const key = [s.p, s.busy, s.s7, s.draft, s.phase, s.analysisError].join("|");
   useEffect(() => {
     const go = () => { const el = ref.current; if (el) el.scrollTop = el.scrollHeight; };
     requestAnimationFrame(go); const t = setTimeout(go, 120); return () => clearTimeout(t);
@@ -45,68 +47,90 @@ export function Chat() {
 
       <div ref={ref} className="chat-body" onScroll={onScroll}>
         <div className="me">
-          <Photo className="photo-chat" label={A ? "인도 위 차량 + 전봇대 아래 쓰레기" : "아파트 지하주차장 이중주차"} />
+          {s.previews.length > 0 && (
+            <div className="row" style={{ gap: 6, justifyContent: "flex-end", flexWrap: "wrap" }}>
+              {s.previews.map((src, i) => <img key={src} src={src} alt={`올린 사진 ${i + 1}`} className="photo photo-chat" style={{ objectFit: "cover", padding: 0 }} />)}
+            </div>
+          )}
           <div className="bubble">{s.sent}</div>
         </div>
 
-        {s.p === 1 && (
+        {/* S2 분석 중: AI 응답까지 4~9초 */}
+        {s.p === 1 && !s.analysisError && (
           <div className="bot">
             <div className="row" style={{ gap: 10 }}><span className="typing" aria-hidden><i /><i /><i /></span>살펴보고 있어요</div>
             <div className="small sub" style={{ marginTop: 4 }} aria-live="polite">{s.phase ? "신고할 수 있는 항목을 찾는 중" : "무엇이 찍혔는지 확인하는 중"}</div>
           </div>
         )}
 
-        {/* S3 신고 불가 (시나리오 B) */}
-        {!A && s.p >= 2 && (
+        {/* S2 분석 실패: 서버가 준 문구(detail)를 그대로 보여 준다 */}
+        {s.p === 1 && s.analysisError && (
+          <div className="panel" role="alert">
+            <div className="row"><Mark kind="warn" /><span className="strong" style={{ color: "var(--warn-ink)" }}>분석하지 못했어요</span></div>
+            <div style={{ textWrap: "pretty" }}>{s.analysisError}</div>
+            <div className="row">
+              <button className="btn btn-secondary" onClick={st.goHome}>다시 입력</button>
+              <button className="btn btn-primary btn-grow" onClick={st.retry}>다시 시도</button>
+            </div>
+          </div>
+        )}
+
+        {/* S3 신고 불가 */}
+        {an && !A && s.p >= 2 && (
           <div className="panel">
             <div className="illu-wrap"><NotReportableArt /></div>
-            <div className="row"><Mark kind="mute" /><span className="strong" style={{ fontSize: 16 }}>신고가 어려운 상황이에요</span></div>
-            <div style={{ textWrap: "pretty" }}>아파트 단지 안 주차장은 사유지라 주민신고 대상이 아니에요. 관리사무소에 문의해 보세요.</div>
-            <div className="note note-sub">주민신고는 도로 위 6대 금지구역(소화전, 교차로 모퉁이, 버스정류소, 횡단보도, 어린이보호구역, 인도)에만 적용돼요.</div>
+            <div className="row"><Mark kind="mute" /><span className="strong" style={{ fontSize: 16 }}>{an.not_reportable?.title ?? "신고가 어려운 상황이에요"}</span></div>
+            <div style={{ textWrap: "pretty" }}>{an.not_reportable?.message ?? an.summary}</div>
+            {an.not_reportable?.basis && <div className="note note-sub">{an.not_reportable.basis}</div>}
+            {an.unsupported_items.length > 0 && <Unsupported items={an.unsupported_items} />}
             <button className="btn btn-outline" onClick={st.goHome}>다른 상황 입력하기</button>
             <Fine />
           </div>
         )}
 
         {/* S3 항목 선택 */}
-        {A && s.p >= 2 && (
+        {an && A && s.p >= 2 && (
           <>
-            <Bot>인도 위에 주차된 차량 1대와, 전봇대 아래 무단투기된 쓰레기가 보여요. 아래 2건을 신고할 수 있습니다.</Bot>
+            <Bot>{an.summary}</Bot>
             <div className="panel" style={{ gap: 14 }}>
-              <div className="col">
-                <Badge kind="신고" />
-                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <Check on={s.park} label="불법주정차 선택" onClick={() => s.p === 2 && set({ park: !s.park })} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="strong">불법주정차 (인도)</div>
-                    <div className="small sub">과태료 부과 대상 · 안전신문고</div>
-                    <button className="link" onClick={() => set({ whyPark: !s.whyPark })}>왜 신고가 되나요?</button>
-                    {s.whyPark && <div className="note">인도는 6대 주정차 금지구역이라 주민 신고만으로 과태료가 부과됩니다.</div>}
+              {an.items.map((it, i) => {
+                const on = s.selected.includes(it.type_id);
+                const open = !!why[it.type_id];
+                return (
+                  <div key={it.type_id} className="col" style={{ gap: 14 }}>
+                    {i > 0 && <div className="divider" />}
+                    <div className="col">
+                      <Badge kind={it.category === "report" ? "신고" : "민원"} />
+                      <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                        <Check on={on} label={`${it.label} 선택`} onClick={() => s.p === 2 && st.toggleItem(it.type_id)} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div className="strong">{it.label}</div>
+                          <div className="small sub">{it.subtitle}</div>
+                          <button className="link" aria-expanded={open} onClick={() => setWhy({ ...why, [it.type_id]: !open })}>왜 신고가 되나요?</button>
+                          {open && <div className="note">{it.reason}</div>}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              <div className="divider" />
-              <div className="col">
-                <Badge kind="민원" />
-                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <Check on={s.trash} label="쓰레기 무단투기 선택" onClick={() => s.p === 2 && set({ trash: !s.trash })} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="strong">쓰레기 무단투기</div>
-                    <div className="small sub">구청 청소과 처리 · 안전신문고</div>
-                    <button className="link" onClick={() => set({ whyTrash: !s.whyTrash })}>왜 신고가 되나요?</button>
-                    {s.whyTrash && <div className="note">종량제 봉투를 쓰지 않고 버린 생활쓰레기는 무단투기로, 구청이 수거하고 단속합니다.</div>}
-                  </div>
-                </div>
-              </div>
-              <div className="divider" />
-              <div className="col" style={{ gap: 4 }}>
-                <div className="xs strong sub">신고가 어려운 항목</div>
-                <div style={{ display: "flex", gap: 12, color: "var(--sub)" }}><span style={{ width: 22, textAlign: "center", flex: "none" }}>–</span><div><div style={{ fontWeight: 500 }}>전봇대 낙서</div><div className="small">아직 안내하지 못하는 유형이에요</div></div></div>
-              </div>
-              {s.p === 2 && <button className="btn btn-primary" disabled={!n} onClick={st.startPrep}>{n ? `${n}건 신고 준비하기` : "항목을 선택해 주세요"}</button>}
+                );
+              })}
+              {an.unsupported_items.length > 0 && (<><div className="divider" /><Unsupported items={an.unsupported_items} /></>)}
+              {s.p === 2 && (
+                <button className="btn btn-primary" disabled={!n || s.creating} onClick={st.startPrep}>
+                  {s.creating ? "준비하고 있어요" : n ? `${n}건 신고 준비하기` : "항목을 선택해 주세요"}
+                </button>
+              )}
               <Fine />
             </div>
           </>
+        )}
+
+        {/* 쓰레기·불법주정차 외 유형만 고른 경우: 증거 안내는 다음 연동 PR(feat/fe-evidence)에서 연결한다 */}
+        {an && A && s.p >= 3 && !s.trash && !s.park && (
+          <div className="panel">
+            <div>신고 건을 만들었어요. 이 유형의 증거 안내는 곧 연결돼요.</div>
+            <button className="btn btn-outline" onClick={st.goHome}>처음으로</button>
+          </div>
         )}
 
         {/* S4 증거 안내 */}
@@ -233,6 +257,20 @@ export function Chat() {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function Unsupported({ items }: { items: { label: string; message: string }[] }) {
+  return (
+    <div className="col" style={{ gap: 4 }}>
+      <div className="xs strong sub">신고가 어려운 항목</div>
+      {items.map((u) => (
+        <div key={u.label} style={{ display: "flex", gap: 12, color: "var(--sub)" }}>
+          <span style={{ width: 22, textAlign: "center", flex: "none" }}>–</span>
+          <div><div style={{ fontWeight: 500 }}>{u.label}</div><div className="small">{u.message}</div></div>
+        </div>
+      ))}
     </div>
   );
 }

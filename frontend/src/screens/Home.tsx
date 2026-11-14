@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../app/store";
 import { TYPE_CARDS, type TypeIcon } from "../data/content";
+import { LIMITS } from "../api/analyses";
 import { Photo } from "../components/ui";
 import { AppBar } from "../components/AppBar";
 import { Stepper } from "../components/Stepper";
@@ -12,10 +13,29 @@ import { Camera, Car, ChevronRight, Cone, Gallery, Poster, Trash } from "../comp
 const TYPE_ICON: Record<TypeIcon, typeof Car> = { car: Car, trash: Trash, poster: Poster, cone: Cone };
 
 export function Home() {
-  const { s, set, send } = useStore();
+  const { s, set, send, toast } = useStore();
   const nav = useNavigate();
-  const canSend = !!s.text.trim() || s.hasPhoto;
+  const canSend = !!s.text.trim() || s.files.length > 0;
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+
+  // 서버와 같은 기준(형식, 10MB, 최대 4장)으로 먼저 거른다. 걸러진 이유는 토스트로 알린다.
+  const addFiles = (list: FileList | null) => {
+    if (!list?.length) return;
+    const picked = Array.from(list);
+    const ok = picked.filter((f) => (LIMITS.photoTypes as readonly string[]).includes(f.type) && f.size <= LIMITS.photoBytes);
+    const room = LIMITS.photoMax - s.files.length;
+    const added = ok.slice(0, Math.max(room, 0));
+    if (ok.length < picked.length) toast("JPEG, PNG, WebP 사진만 10MB 이하로 올릴 수 있어요");
+    else if (added.length < ok.length) toast(`사진은 최대 ${LIMITS.photoMax}장까지 올릴 수 있어요`);
+    if (!added.length) return;
+    set({ files: [...s.files, ...added], previews: [...s.previews, ...added.map((f) => URL.createObjectURL(f))] });
+  };
+  const removeFile = (i: number) => {
+    URL.revokeObjectURL(s.previews[i]);
+    set({ files: s.files.filter((_, j) => j !== i), previews: s.previews.filter((_, j) => j !== i) });
+  };
 
   // 유형 카드: 글만 대신 써 준다. 사진 상태는 건드리지 않는다.
   // 입력창으로 커서를 옮겨 장소 같은 내용을 바로 덧붙일 수 있게 한다.
@@ -50,16 +70,22 @@ export function Home() {
         </button>
 
         <div className="composer">
-          {s.hasPhoto && (
-            <div className="row" style={{ gap: 10 }}>
-              <Photo label="사진 1장" className="photo-md" />
-              <button className="link" style={{ minHeight: 44, color: "var(--sub)" }} onClick={() => set({ hasPhoto: false })}>빼기</button>
+          {s.previews.length > 0 && (
+            <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
+              {s.previews.map((src, i) => (
+                <div key={src} className="col" style={{ gap: 2, alignItems: "center" }}>
+                  <img src={src} alt={`올린 사진 ${i + 1}`} className="photo photo-md" style={{ objectFit: "cover", padding: 0 }} />
+                  <button className="link" style={{ minHeight: 32, color: "var(--sub)" }} onClick={() => removeFile(i)}>빼기</button>
+                </div>
+              ))}
             </div>
           )}
-          <textarea ref={inputRef} rows={2} value={s.text} aria-label="상황 설명" placeholder="예: 인도에 차가 올라와 있어요" onChange={(e) => set({ text: e.target.value })} />
+          <textarea ref={inputRef} rows={2} value={s.text} maxLength={LIMITS.textMax} aria-label="상황 설명" placeholder="예: 인도에 차가 올라와 있어요" onChange={(e) => set({ text: e.target.value })} />
+          <input ref={cameraRef} type="file" accept={LIMITS.photoTypes.join(",")} capture="environment" hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+          <input ref={galleryRef} type="file" accept={LIMITS.photoTypes.join(",")} multiple hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
           <div className="row">
-            <button className="btn btn-secondary btn-sm" onClick={() => set({ hasPhoto: !s.hasPhoto })}><Camera size={18} />카메라</button>
-            <button className="btn btn-secondary btn-sm" onClick={() => set({ hasPhoto: !s.hasPhoto })}><Gallery size={18} />갤러리</button>
+            <button className="btn btn-secondary btn-sm" disabled={s.files.length >= LIMITS.photoMax} onClick={() => cameraRef.current?.click()}><Camera size={18} />카메라</button>
+            <button className="btn btn-secondary btn-sm" disabled={s.files.length >= LIMITS.photoMax} onClick={() => galleryRef.current?.click()}><Gallery size={18} />갤러리</button>
             <div style={{ flex: 1 }} />
             <button className="btn btn-primary" style={{ height: 44, fontSize: 14 }} disabled={!canSend} onClick={send}>보내기</button>
           </div>
