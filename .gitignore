@@ -21,3 +21,8 @@ out/
 # 기타
 .DS_Store
 *.log
+
+# 로컬 데이터
+uploads/
+*.db
+*.sqlite3
