@@ -49,7 +49,7 @@ export function Done() {
 
         <div className="panel">
           <div className="small" style={{ textWrap: "pretty" }}>이 경험을 다른 사람에게 알려 주시겠어요? 개인정보는 지우고 공유돼요.</div>
-          <button className="btn btn-outline btn-sm" onClick={() => openShare("done")}><Share size={16} />사례로 공유하기</button>
+          <button className="btn btn-outline btn-sm" disabled={!s.finished.length} onClick={() => s.finished[0] && openShare(s.finished[0].id, "/done")}><Share size={16} />사례로 공유하기</button>
         </div>
 
         <div className="col" style={{ marginTop: "auto" }}>

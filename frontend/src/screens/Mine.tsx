@@ -10,6 +10,7 @@ import { EmptyListArt } from "../components/motifs/Illustrations";
 import { ChevronRight, Share } from "../components/icons/Icons";
 import { getReport, listReports, patchReport, type Report, type ReportListItem, type ReportStatus, type ResultValue } from "../api/reports";
 import { errorMessage } from "../api/client";
+import { unshareCase } from "../api/cases";
 
 const FILTER_STATUS: Record<string, ReportStatus | undefined> = { "전체": undefined, "준비 중": "preparing", "접수 완료": "filed", "처리 완료": "resolved" };
 const PILL: Record<ReportStatus, string> = { resolved: "pill-ok", preparing: "pill-warn", filed: "pill-mute" };
@@ -98,6 +99,7 @@ export function Mine() {
 
 export function MineDetail() {
   const { openShare, resume, toast } = useStore();
+  const [unsharing, setUnsharing] = useState(false);
   const nav = useNavigate();
   const { id = "" } = useParams();
   const [data, setData] = useState<{ id: string; report?: Report; error?: string }>({ id: "" });
@@ -191,7 +193,19 @@ export function MineDetail() {
                 </>
               )}
             </div>
-            <button className="btn btn-outline" onClick={() => openShare("detail")}><Share size={16} />사례로 공유하기</button>
+            {d.case_id ? (
+              <div className="row">
+                <button className="btn btn-secondary" disabled={unsharing} onClick={async () => {
+                  setUnsharing(true);
+                  try { await unshareCase(d.id); setD({ ...d, case_id: null }); toast("공유를 내렸어요"); }
+                  catch (e) { toast(errorMessage(e)); }
+                  finally { setUnsharing(false); }
+                }}>공유 내리기</button>
+                <button className="btn btn-outline btn-grow" onClick={() => nav(`/cases/${d.case_id}`)}>공유한 사례 보기</button>
+              </div>
+            ) : (
+              <button className="btn btn-outline" onClick={() => openShare(d.id, `/mine/${d.id}`)}><Share size={16} />사례로 공유하기</button>
+            )}
           </>
         )}
       </div>

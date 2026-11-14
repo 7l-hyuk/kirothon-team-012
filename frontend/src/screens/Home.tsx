@@ -66,7 +66,7 @@ export function Home() {
       <div className="screen" style={{ gap: 18, paddingTop: 4 }}>
         <h1 className="h1" style={{ whiteSpace: "nowrap", fontSize: "clamp(20px, 6.6cqw, 26px)" }}>무슨 불편을 겪으셨나요?</h1>
 
-        {s.fromCase && <div className="note">사례와 같은 유형(불법주정차)으로 시작해요.</div>}
+        {s.fromCase && <div className="note">사례와 같은 유형({s.fromCase})으로 시작해요.</div>}
 
         {pending && (
           <button className="resume" onClick={() => resume(pending.id)}>
