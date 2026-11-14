@@ -4,7 +4,6 @@ import { Badge, Bot, Check, Fine, Mark } from "../components/ui";
 import { ReportFlow } from "./ReportFlow";
 import { AppBar } from "../components/AppBar";
 import { Stepper } from "../components/Stepper";
-import { ChatHero, SheetCorners } from "../components/motifs/ChatBackdrop";
 import { NotReportableArt } from "../components/motifs/Illustrations";
 
 export function Chat() {
@@ -45,9 +44,6 @@ export function Chat() {
         <Stepper current={stage} compact={compact} />
       </div>
 
-      <ChatHero compact={compact} />
-      <div className="chat-sheet">
-        <SheetCorners />
       <div ref={ref} className="chat-body" onScroll={onScroll}>
         <div className="me">
           {pics.length > 0 && (
@@ -129,7 +125,6 @@ export function Chat() {
         )}
 
         {s.p >= 3 && <ReportFlow />}
-      </div>
       </div>
     </div>
   );

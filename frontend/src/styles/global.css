@@ -49,7 +49,8 @@ svg { flex: none; }
 .section-title { font-size: 13px; font-weight: 700; color: var(--sub); }
 
 /* ── 상단 바 ─────────────────────────────────── */
-.appbar { flex: none; display: grid; grid-template-columns: 48px 1fr 48px; align-items: center; height: calc(56px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 6px 0; }
+/* 화면 맨 위에 붙지 않게 상단에 16px을 더 둔다 */
+.appbar { flex: none; display: grid; grid-template-columns: 48px 1fr 48px; align-items: center; height: calc(72px + env(safe-area-inset-top)); padding: calc(env(safe-area-inset-top) + 16px) 6px 0; }
 .appbar .ab-btn { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; color: var(--ink); }
 .appbar .ab-btn:hover { background: var(--bg-2); }
 .appbar .ab-title { text-align: center; font-weight: 700; font-size: 17px; }
@@ -66,6 +67,11 @@ svg { flex: none; }
 .stepper .st-line.done { background: var(--navy); }
 .stepper .st-label { font-size: 12px; font-weight: 700; color: var(--ink); display: flex; gap: 6px; align-items: center; }
 .stepper .st-pos { color: var(--navy); font-variant-numeric: tabular-nums; }
+.stepper .st-label.ghost { visibility: hidden; }
+.stepper .st-dot { position: relative; }
+.stepper .st-under { position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 12px; font-weight: 700; color: var(--ink); pointer-events: none; }
+.stepper .st-under.first { left: 0; transform: none; }
+.stepper .st-under.last { left: auto; right: 0; transform: none; }
 /* 얇은 막대: 평소에는 숨기고 compact일 때만 */
 .stepper .st-bar { display: flex; gap: 3px; width: 100%; max-width: 300px; max-height: 0; opacity: 0; overflow: hidden; transition: max-height .25s ease, opacity .2s ease; }
 .stepper .st-bar i { flex: 1; height: 4px; border-radius: 2px; background: var(--line-strong); transition: background .25s; }
@@ -173,9 +179,11 @@ button.list-card:active { transform: scale(.99); }
 .textarea { border: 1px solid var(--line-strong); border-radius: var(--r); padding: 10px 12px; font-size: 14px; outline: 0; resize: none; width: 100%; background: var(--card); }
 
 /* ── 신고 대화 ───────────────────────────────── */
-.chat { position: relative; isolation: isolate; flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--navy); }
-/* 대화 화면은 홈(S0)처럼 남색 바탕. 머리(앱 바, 단계 표시)도 같은 바탕에 흰 글자 */
-.chat-head { flex: none; position: relative; z-index: 2; background: var(--navy); color: #fff; }
+/* 대화 화면 배경: 전통 물결무늬 이미지(위 남색 + 창살·구름·청해파, 아래 밝은 바탕 + 아치).
+   화면에 꽉 차게 고정하고 대화는 그 위로 스크롤된다. 이미지보다 화면이 길면 아래는 이미지 아래쪽 색으로 채운다 */
+.chat { position: relative; isolation: isolate; flex: 1; min-height: 0; display: flex; flex-direction: column; background: #e5ecfa url("./../assets/chat-bg.jpg") center top / cover no-repeat; }
+/* 머리(앱 바, 단계 표시)는 이미지의 남색 위에 흰 글자로 얹는다 */
+.chat-head { flex: none; position: relative; z-index: 2; background: transparent; color: #fff; }
 .chat-head .appbar .ab-btn, .chat-head .appbar .ab-title { color: #fff; }
 .chat-head .appbar .ab-btn:hover { background: rgba(255,255,255,.1); }
 .chat-head .appbar .ab-count { color: rgba(255,255,255,.75); }
@@ -185,20 +193,10 @@ button.list-card:active { transform: scale(.99); }
 .chat-head .stepper .st-line, .chat-head .stepper .st-bar i { background: rgba(255,255,255,.28); }
 .chat-head .stepper .st-line.done, .chat-head .stepper .st-bar i.done { background: #fff; }
 .chat-head .stepper .st-bar i.now { background: linear-gradient(90deg, #fff 50%, rgba(255,255,255,.28) 50%); }
-.chat-head .stepper .st-label, .chat-head .stepper .st-pos { color: #fff; }
-/* 머리 아래 남색 문양 띠. 아래 22px은 대화 패널에 가려진다 */
-.chat-hero { flex: none; position: relative; height: 150px; margin-bottom: -22px; overflow: hidden; transition: height .25s ease; }
-.chat-hero.compact { height: 40px; }
-.chat-hero-frame { position: absolute; left: 12px; right: 12px; top: 0; bottom: 0; border: 1px solid rgba(255,255,255,.18); border-top: 0; border-bottom: 0; }
-/* 문양은 150px 기준으로 아래에 붙여 두고, 띠가 줄면 위쪽부터 가려진다 */
-.chat-hero-art { position: absolute; left: 0; right: 0; bottom: 0; height: 150px; }
-.chat-hero-flower { left: 50%; transform: translateX(-50%); }
-/* 밝은 대화 패널: 위 모서리가 둥글고 남색 띠 위로 겹친다 */
-.chat-sheet { position: relative; z-index: 1; flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--chat-bg); border-radius: 26px 26px 0 0; overflow: hidden; box-shadow: 0 -6px 18px rgba(16,32,72,.18); }
-.chat-sheet-corners { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-.chat-body { position: relative; z-index: 1; flex: 1; min-height: 0; overflow: auto; padding: 16px 16px calc(50px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
+.chat-head .stepper .st-label, .chat-head .stepper .st-pos, .chat-head .stepper .st-under { color: #fff; }
+.chat-body { position: relative; z-index: 1; flex: 1; min-height: 0; overflow: auto; padding: 64px 16px calc(50px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
 .me { align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-.me .bubble { max-width: 280px; background: var(--navy); color: #fff; border-radius: 16px 4px 16px 16px; padding: 10px 14px; }
+.me .bubble { max-width: 280px; background: var(--navy); color: #fff; box-shadow: 0 0 0 1px rgba(255,255,255,.35); border-radius: 16px 4px 16px 16px; padding: 10px 14px; }
 .bot { align-self: flex-start; max-width: 310px; background: var(--card); box-shadow: var(--shadow); border-radius: 4px 16px 16px 16px; padding: 11px 14px; text-wrap: pretty; }
 .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--navy); animation: smPulse 1s infinite; display: inline-block; }
 .dots { display: flex; gap: 3px; }
