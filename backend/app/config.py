@@ -26,3 +26,8 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def is_mock() -> bool:
+    """키가 없으면 AI 대신 가짜 응답으로 동작합니다(로컬 개발과 테스트용)."""
+    return not get_settings().anthropic_api_key.strip()
