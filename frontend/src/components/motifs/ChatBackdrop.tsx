@@ -1,32 +1,41 @@
-// 신고 대화(/chat) 배경: 홈(S0)과 같은 남색 바탕에 창살 모서리, 구름, 청해파·卍자문 원, 꽃, 아치.
-// 대화 영역 뒤에 고정되어 스크롤해도 움직이지 않습니다. 글과 카드가 잘 읽히도록 선을 홈보다 옅게 둡니다.
+// 신고 대화(/chat) 장식. 홈(S0)과 같은 구성입니다.
+//   ChatHero    머리 아래 남색 띠. 창살 모서리, 구름, 청해파·卍자문 원, 꽃, 아치를 넣고, 아래쪽은 대화 패널 뒤로 살짝 가려집니다.
+//   SheetCorners 밝은 대화 패널 아래 양쪽의 옅은 창살 모서리
+// 대화를 아래로 스크롤하면(compact) 띠를 얇게 줄여 대화 공간을 넓힙니다.
 import "../../styles/landing.css";
 import { Arch, CloudBand, FretCircle, Flower, LatticeCorner, WaveCircle } from "./LandingMotifs";
 
-const LINE = "rgba(255,255,255,.32)";
-const FAINT = "rgba(255,255,255,.26)";
-
-export function ChatBackdrop() {
+export function ChatHero({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="chat-bd" aria-hidden>
-      <div className="chat-bd-frame" />
-      <div className="ld-deco" style={{ left: 10, top: 10 }}><LatticeCorner size={48} color={LINE} /></div>
-      <div className="ld-deco" style={{ right: 10, top: 10 }}><LatticeCorner size={48} color={LINE} flipX /></div>
-      <div className="ld-deco" style={{ left: "17%", top: 30 }}><CloudBand width={74} color={LINE} /></div>
-      <div className="ld-deco" style={{ right: "12%", top: 78 }}><CloudBand width={64} color={LINE} mirror /></div>
-      <div className="ld-deco" style={{ left: "6%", top: "44%" }}><CloudBand width={60} color={FAINT} /></div>
-      <div className="ld-deco" style={{ right: "5%", top: "52%" }}><CloudBand width={68} color={FAINT} mirror /></div>
+    <div className={`chat-hero ${compact ? "compact" : ""}`} aria-hidden>
+      <div className="chat-hero-frame" />
+      <div className="chat-hero-art">
+        <div className="ld-deco" style={{ left: 12, top: 0 }}><LatticeCorner size={42} /></div>
+        <div className="ld-deco" style={{ right: 12, top: 0 }}><LatticeCorner size={42} flipX /></div>
+        <div className="ld-deco" style={{ left: "21%", top: 8 }}><CloudBand width={66} /></div>
+        <div className="ld-deco" style={{ left: "49%", top: 22 }}><CloudBand width={58} mirror /></div>
+        <div className="ld-deco" style={{ right: "7%", top: 48 }}><CloudBand width={54} /></div>
+        <div className="ld-deco" style={{ left: "4%", top: 56 }}><CloudBand width={50} /></div>
 
-      {/* 아래쪽 문양 묶음: 화면 너비에 맞춰 늘고 줄어듭니다(390px 기준 비율) */}
-      <div className="chat-bd-art">
-        <div className="ld-fit" style={{ left: "12%", bottom: "26%", width: "30%", aspectRatio: "1" }}><WaveCircle size={122} color={FAINT} /></div>
-        <div className="ld-fit" style={{ right: "12%", bottom: "26%", width: "30%", aspectRatio: "1" }}><FretCircle size={120} color={FAINT} /></div>
-        <div className="ld-fit chat-bd-flower" style={{ width: "11%", aspectRatio: "1" }}><Flower /></div>
-        <div className="ld-fit" style={{ left: "-2%", bottom: "6%", width: "20%", aspectRatio: "1 / .85" }}><Arch width={76} color={LINE} /></div>
-        <div className="ld-fit" style={{ left: "15%", bottom: 0, width: "22%", aspectRatio: "1 / .85" }}><Arch width={84} color={LINE} /></div>
-        <div className="ld-fit" style={{ right: "15%", bottom: 0, width: "22%", aspectRatio: "1 / .85" }}><Arch width={84} color={LINE} /></div>
-        <div className="ld-fit" style={{ right: "-2%", bottom: "6%", width: "20%", aspectRatio: "1 / .85" }}><Arch width={76} color={LINE} /></div>
+        <div className="ld-deco" style={{ left: "-3%", bottom: 6 }}><Arch width={64} /></div>
+        <div className="ld-deco" style={{ left: "12%", bottom: -6 }}><Arch width={72} /></div>
+        <div className="ld-deco" style={{ left: "29%", bottom: 22 }}><WaveCircle size={62} /></div>
+        <div className="ld-deco chat-hero-flower" style={{ bottom: 22 }}><Flower size={30} /></div>
+        <div className="ld-deco" style={{ right: "29%", bottom: 22 }}><FretCircle size={60} /></div>
+        <div className="ld-deco" style={{ right: "12%", bottom: -6 }}><Arch width={72} /></div>
+        <div className="ld-deco" style={{ right: "-3%", bottom: 6 }}><Arch width={64} /></div>
       </div>
+    </div>
+  );
+}
+
+const SHEET_LINE = "var(--navy-line)";
+
+export function SheetCorners() {
+  return (
+    <div className="chat-sheet-corners" aria-hidden>
+      <div className="ld-deco" style={{ left: 12, bottom: 10 }}><LatticeCorner size={44} color={SHEET_LINE} flipY /></div>
+      <div className="ld-deco" style={{ right: 12, bottom: 10 }}><LatticeCorner size={44} color={SHEET_LINE} flipX flipY /></div>
     </div>
   );
 }
