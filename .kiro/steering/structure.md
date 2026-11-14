@@ -16,6 +16,8 @@ inclusion: always
 ├── Dockerfile                # 멀티 스테이지: 프론트 빌드 → 백엔드 이미지
 ├── docker-compose.yml        # app + db (PostgreSQL, 이름 있는 볼륨)
 ├── deploy/                   # 배포 절차 문서와 스크립트 (EC2, CloudFront, S3, IAM)
+├── docs/
+│   └── api-spec.md           # 백엔드 API 명세 (API의 기준 문서)
 ├── .kiro/
 │   ├── steering/             # product.md, tech.md, structure.md
 │   ├── specs/
@@ -97,27 +99,34 @@ frontend/
 
 ## API 경로 규칙
 - 모두 `/api` 아래, 소문자 kebab-case, 복수형 명사. 동사는 HTTP 메서드로 표현합니다.
-- 모든 요청에 `X-Device-Id` 헤더. 오류는 `{ "detail": "해요체 문구" }` 형태.
+- 모든 요청에 `X-Device-Id` 헤더. 오류는 `{ "detail": "해요체 문구", "code": "snake_case 오류 코드" }` 형태. `code` 목록은 명세를 따릅니다.
 
-초안:
+요청·응답의 상세는 `docs/api-spec.md`가 기준이며, 이 표와 다르면 명세가 우선합니다. API를 바꿀 때는 명세를 먼저 고칩니다.
+
+#[[file:docs/api-spec.md]]
 
 | 메서드 | 경로 | 용도 | 화면 |
 |---|---|---|---|
-| POST | `/api/analyses` | 사진·글로 상황 분석, 항목 제안 | S2, S3 |
-| POST | `/api/reports` | 선택한 항목으로 신고 건 생성 | S3 |
-| GET | `/api/reports` | 내 신고 목록 (`?status=`) | S10 |
-| GET | `/api/reports/{id}` | 내 신고 상세 | S11 |
-| PATCH | `/api/reports/{id}` | 상태, 처리 결과, 접수번호 수정 | S7, S11 |
-| POST | `/api/reports/{id}/photos` | 사진 업로드 (multipart) | S4 |
-| POST | `/api/reports/{id}/reviews` | 증거 검수 | S5 |
-| POST | `/api/reports/{id}/rehearsals` | 불법주정차 사전 점검 | S6-1 |
-| POST | `/api/reports/{id}/drafts` | 신고 문구 대필 (`tone`: 기본/짧게/정중하게) | S7 |
-| GET | `/api/procedures/{type_id}` | 절차 데이터 조회 | S4, S7 |
-| GET | `/api/cases` | 사례 목록 (`?type=`) | S12 |
-| GET | `/api/cases/{id}` | 사례 상세 | S13 |
+| POST | `/api/analyses` | 사진·글로 상황 분석, 신고 항목 제안 | S1, S2, S3 |
+| GET | `/api/analyses/{id}` | 분석 결과 다시 조회 | S3 |
+| POST | `/api/analyses/{id}/reports` | 선택한 항목으로 신고 건 생성 | S3 |
+| GET | `/api/reports` | 내 신고 목록 | S1, S10 |
+| GET | `/api/reports/{id}` | 내 신고 상세 | S9, S11 |
+| PATCH | `/api/reports/{id}` | 진행 단계, 접수번호, 처리 결과 수정 | S7, S11 |
+| GET | `/api/reports/{id}/evidence` | 증거 체크리스트와 장면별 상태 | S4 |
+| POST | `/api/reports/{id}/photos` | 사진 업로드와 증거 검수 | S4, S5 |
+| POST | `/api/reports/{id}/rehearsals` | 불법주정차 사전 점검 | S6 |
+| GET | `/api/reports/{id}/guide` | 단계별 접수 안내 | S7, S8 |
+| POST | `/api/reports/{id}/drafts` | 신고 문구 대필 | S7 |
+| GET | `/api/reports/{id}/case-preview` | 사례 공유 미리보기 | S14 |
 | POST | `/api/reports/{id}/case` | 사례로 공유 | S14 |
 | DELETE | `/api/reports/{id}/case` | 공유 내리기 | S11 |
-| POST | `/api/cases/{id}/likes` | 도움돼요 | S13 |
+| GET | `/api/cases` | 사례 목록 | S12 |
+| GET | `/api/cases/{id}` | 사례 상세 | S13 |
+| PUT | `/api/cases/{id}/like` | 도움돼요 누르기 | S13 |
+| DELETE | `/api/cases/{id}/like` | 도움돼요 취소 | S13 |
+| GET | `/api/procedures/{type_id}` | 신고 절차 데이터 조회 | S4, S7 |
+| GET | `/api/health` | 서버 상태 확인 | - |
 
 ## 신고 절차 JSON 스키마 (초안)
 파일 하나가 유형 하나입니다. 값은 사람이 검증한 것만 넣고, 확인되지 않은 값은 `verified: false`로 표시합니다.
@@ -126,7 +135,7 @@ frontend/
 {
   "type_id": "trash_dumping",
   "label": "쓰레기 무단투기",
-  "category": "민원",
+  "category": "complaint",
   "agency": "구청 청소과",
   "channel": {
     "name": "안전신문고",
@@ -182,11 +191,13 @@ frontend/
 ## DB 테이블 (초안, SQLModel)
 | 테이블 | 주요 컬럼 |
 |---|---|
-| `reports` | `id`, `device_id`, `type_id`, `status`(`preparing`/`submitted`/`resolved`), `situation_text`, `location_text`, `summary`, `draft_text`, `submission_no`, `result`(`accepted`/`rejected`/`unknown`/null), `reject_reason`, `created_at`, `updated_at` |
-| `photos` | `id`, `report_id`, `device_id`, `s3_key`, `scene_id`(null 가능), `review_status`(`sufficient`/`insufficient`/`undetermined`/null), `review_feedback`, `taken_order`, `created_at` |
+| `analyses` | `id`, `device_id`, `situation_text`, `result`(AI 분석 결과 JSON), `address`(null 가능), `district`(null 가능), `dong`(null 가능), `created_at` |
+| `reports` | `id`, `device_id`, `analysis_id`, `type_id`, `sequence`, `status`(`preparing`/`filed`/`resolved`), `current_step`, `situation_text`, `location_text`, `summary`, `draft_text`, `receipt_number`, `result`(`accepted`/`rejected`/`unknown`/null), `result_reason`, `filed_at`, `resolved_at`, `created_at`, `updated_at` |
+| `photos` | `id`, `device_id`, `analysis_id`(null 가능), `report_id`(null 가능), `s3_key`, `scene_id`(null 가능), `review_status`(`sufficient`/`insufficient`/`undetermined`/null), `review_message`, `retake_tip`, `taken_order`, `created_at` |
 | `step_progress` | `id`, `report_id`, `step_id`, `done`, `done_at` |
 | `ai_usage` | `id`, `device_id`, `date`, `count` (기기 ID + 날짜 유니크) |
-| `cases` | `id`, `report_id`(seed는 null), `type_id`, `title`, `body`, `result`, `district`(구 단위), `month`(예: 2026-11), `helpful_count`, `is_published`, `created_at` |
+| `cases` | `id`, `report_id`(seed는 null), `type_id`, `title`, `body`, `result`, `district`(구 단위), `month`(예: 2026-11), `like_count`, `is_published`, `created_at` |
+| `case_likes` | `id`, `case_id`, `device_id` (`case_id` + `device_id` 유일 제약) |
 | `case_photos` | `id`, `case_id`, `s3_key` |
 
 - `status` 값은 화면의 준비 중 / 접수 완료 / 처리 완료에 대응합니다.
