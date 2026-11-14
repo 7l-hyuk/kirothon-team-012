@@ -20,6 +20,7 @@ Spec 5개의 작업 목록(`tasks.md`)에는 완료 항목 136개와 남은 항�
 | 설계 | Spec (design) | 기능별 구조를 설계했습니다. 가짜 응답과 실제 호출을 가려 쓰는 방식, AI는 판정만 하고 절차는 서버가 데이터로 조립하는 구조, 사진 저장소 인터페이스(S3와 로컬), 미리보기 글을 저장해 공유 글과 일치시키는 방식 등입니다 | `.kiro/specs/*/design.md` |
 | 구현 | Spec (tasks) 실행 | 작업 목록대로 Kiro가 코드를 작성했습니다. 백엔드 뼈대와 가짜 API, Claude 연동 4개 기능(분석, 증거 검수, 사전 점검, 문구 대필), 4개 유형의 절차 데이터, PostgreSQL과 S3 저장, 사례 공유 API와 예시 사례입니다 | `backend/app/`, `backend/data/`, `Dockerfile`, `docker-compose.yml` |
 | 구현 | Spec (tasks) 실행 | 프론트 화면을 다시 그렸습니다. 디자인 토큰과 공통 CSS, 공통 부품, 홈을 유일한 시작점으로 하는 이동 흐름, 화면별 적용, 피드백 반영 순서로 진행했습니다 | `.kiro/specs/frontend-redesign/`, `frontend/src/styles/`, `frontend/src/components/`, `frontend/src/screens/` |
+| 구현 | Kiro CLI 채팅 | 화면을 써 보며 나온 피드백을 Spec 없이 대화로 반영했습니다. 신고 문구에서 위치 자리표시 제거(프롬프트, 서버, 테스트, `docs/api-spec.md`, `ai-assist` 요구사항을 함께 수정), 글자수 표시와 복사 아이콘, 신고 조회 카드의 이어서 하기 위치, 상태 문구에서 증거 개수 제거, 단계 표시 정렬입니다. 정렬은 헤드리스 크롬으로 번호 원과 이름의 중심 좌표를 측정해 확인했습니다 | PR #24, `frontend/src/screens/`, `backend/app/ai/prompts.py` |
 | 검증 | Spec (tasks) + 테스트 작성 | 인수 조건을 검증하는 백엔드 테스트 143개를 Kiro가 작성했습니다. SQLite 메모리 DB와 가짜 Claude 클라이언트로 돌아 외부 접속 없이 실행됩니다 | `backend/tests/` |
 | 검증 | 코드 리뷰 반영 | 구현 뒤 실제 PostgreSQL, S3, Claude 호출로 동작을 확인하고, 찾은 문제를 Kiro에 전달해 수정하게 했습니다. 수정 내용은 각 Spec의 `tasks.md` 끝 "코드 리뷰 반영" 항목에 기록돼 있습니다 | `.kiro/specs/*/tasks.md` |
 | 기타 | Hooks | `backend/`의 Python 파일을 저장하면 `pytest`를 돌리고, 라우터나 스키마를 저장하면 `docs/api-spec.md`와 어긋난 곳을 찾고, 프론트의 API 호출 코드를 저장하면 명세와 비교합니다 | `.kiro/hooks/` |
@@ -51,7 +52,7 @@ Kiro만으로 만든 것은 아닙니다. 사실대로 구분해 적습니다.
 
 ### Spec 없이 진행한 작업
 
-프론트의 API 연동(PR #6, #7, #9, #11, #12, #14)은 별도 Spec을 만들지 않았습니다. `frontend-redesign` Spec의 요구사항에 "연동은 별도 Spec에서 한다"고 적었지만, 실제로는 `docs/api-spec.md`와 Steering을 기준으로 공통 클라이언트 → 분석 → 증거 → 접수 안내 → 신고 조회 → 사례 순서의 PR 여섯 건으로 나눠 진행했습니다. 그래서 이 작업은 `.kiro/specs/`에 기록이 없고, 위 표에도 넣지 않았습니다. 각 PR의 인수인계 절과 `docs/api-spec.md`가 이 작업의 기록입니다.
+프론트의 API 연동(PR #6, #7, #9, #11, #12, #14)은 별도 Spec을 만들지 않았습니다. `frontend-redesign` Spec의 요구사항에 "연동은 별도 Spec에서 한다"고 적었지만, 실제로는 `docs/api-spec.md`와 Steering을 기준으로 공통 클라이언트 → 분석 → 증거 → 접수 안내 → 신고 조회 → 사례 순서의 PR 여섯 건으로 나눠 진행했습니다. 그래서 이 작업은 `.kiro/specs/`에 기록이 없고, 위 표에도 넣지 않았습니다. 각 PR의 인수인계 절과 `docs/api-spec.md`가 이 작업의 기록입니다. 연동 뒤 화면 피드백 반영(PR #24)도 Spec 없이 Kiro CLI 채팅으로 진행했습니다.
 
 ## 개발 과정에서 바뀐 점
 
