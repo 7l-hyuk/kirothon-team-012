@@ -6,7 +6,7 @@ import { Check, Clock } from "../components/icons/Icons";
 export function TimerOverlay() {
   const { s, cancelTimer, timerShot } = useStore();
   if (!s.timer) return null;
-  const pct = (s.sec / 60) * 100;
+  const pct = (s.sec / (s.timerTotal || 60)) * 100;
   const clock = `${Math.floor(s.sec / 60)}:${String(s.sec % 60).padStart(2, "0")}`;
   // 10초 이하: 원을 강조. 0초: 맥박 효과 + 큰 버튼
   const phase = s.timerDone ? "done" : s.sec <= 10 ? "soon" : "";
@@ -24,7 +24,7 @@ export function TimerOverlay() {
         {!s.timerDone ? (
           <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.45, textWrap: "balance" }}>그 자리에서 기다려 주세요. 자리를 옮기면 반려될 수 있어요.</div>
-            <div className="small sub">어린이보호구역은 5분 간격이 필요할 수 있어요</div>
+            {s.rehearsal?.capture_guide.interval_note && <div className="small sub">{s.rehearsal.capture_guide.interval_note}</div>}
           </div>
         ) : (
           <div className="timer-go" role="alert" style={{ fontSize: 22, fontWeight: 700, textAlign: "center" }}>지금 두 번째 사진을 찍으세요</div>
