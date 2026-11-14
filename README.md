@@ -164,7 +164,7 @@ API 명세는 [`docs/api-spec.md`](docs/api-spec.md)에 있고, 실행 중인 �
 ## 7. 테스트
 
 ```bash
-# 백엔드 테스트 (137개)
+# 백엔드 테스트 (145개)
 cd backend && uv run pytest
 
 # 프론트 타입 검사와 빌드
