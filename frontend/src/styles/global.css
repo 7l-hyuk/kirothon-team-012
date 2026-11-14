@@ -173,11 +173,27 @@ button.list-card:active { transform: scale(.99); }
 .textarea { border: 1px solid var(--line-strong); border-radius: var(--r); padding: 10px 12px; font-size: 14px; outline: 0; resize: none; width: 100%; background: var(--card); }
 
 /* ── 신고 대화 ───────────────────────────────── */
-.chat { position: relative; isolation: isolate; flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--chat-bg); }
-.chat-head { flex: none; background: rgba(238,241,248,.92); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
-.chat-body { flex: 1; min-height: 0; overflow: auto; padding: 16px 16px calc(50px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
+.chat { position: relative; isolation: isolate; flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--navy); }
+/* 대화 화면은 홈(S0)처럼 남색 바탕. 머리(앱 바, 단계 표시)도 같은 바탕에 흰 글자 */
+.chat-head { flex: none; position: relative; z-index: 2; background: var(--navy); border-bottom: 1px solid rgba(255,255,255,.14); color: #fff; }
+.chat-head .appbar .ab-btn, .chat-head .appbar .ab-title { color: #fff; }
+.chat-head .appbar .ab-btn:hover { background: rgba(255,255,255,.1); }
+.chat-head .appbar .ab-count { color: rgba(255,255,255,.75); }
+.chat-head .stepper .st-dot { background: transparent; border-color: rgba(255,255,255,.45); color: rgba(255,255,255,.8); }
+.chat-head .stepper .st-dot.done, .chat-head .stepper .st-dot.now { background: #fff; border-color: #fff; color: var(--navy); }
+.chat-head .stepper .st-dot.now { box-shadow: 0 0 0 4px rgba(255,255,255,.22); }
+.chat-head .stepper .st-line, .chat-head .stepper .st-bar i { background: rgba(255,255,255,.28); }
+.chat-head .stepper .st-line.done, .chat-head .stepper .st-bar i.done { background: #fff; }
+.chat-head .stepper .st-bar i.now { background: linear-gradient(90deg, #fff 50%, rgba(255,255,255,.28) 50%); }
+.chat-head .stepper .st-label, .chat-head .stepper .st-pos { color: #fff; }
+.chat-main { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.chat-bd { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.chat-bd-frame { position: absolute; left: 12px; right: 12px; top: 10px; bottom: 0; border: 1px solid rgba(255,255,255,.14); border-bottom: 0; }
+.chat-bd-art { position: absolute; left: 0; right: 0; bottom: 0; aspect-ratio: 390 / 230; max-height: 42%; }
+.chat-bd-flower { left: 50%; bottom: 20%; transform: translateX(-50%); }
+.chat-body { position: relative; z-index: 1; flex: 1; min-height: 0; overflow: auto; padding: 16px 16px calc(50px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
 .me { align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-.me .bubble { max-width: 280px; background: var(--navy); color: #fff; border-radius: 16px 4px 16px 16px; padding: 10px 14px; }
+.me .bubble { max-width: 280px; background: #3a5d9e; border: 1px solid rgba(255,255,255,.28); color: #fff; border-radius: 16px 4px 16px 16px; padding: 10px 14px; }
 .bot { align-self: flex-start; max-width: 310px; background: var(--card); box-shadow: var(--shadow); border-radius: 4px 16px 16px 16px; padding: 11px 14px; text-wrap: pretty; }
 .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--navy); animation: smPulse 1s infinite; display: inline-block; }
 .dots { display: flex; gap: 3px; }
