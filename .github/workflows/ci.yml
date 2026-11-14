@@ -1,0 +1,59 @@
+name: CI
+
+# main으로 가는 PR에서만 실행합니다. main push는 deploy.yml이 맡습니다.
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# 같은 PR에 새 커밋이 오면 이전 실행을 취소합니다.
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      # 테스트는 SQLite와 가짜 클라이언트로 돌아 외부 접속과 API 키가 필요 없습니다.
+      - name: 의존성 설치
+        working-directory: backend
+        run: uv sync --frozen
+      - name: 테스트
+        working-directory: backend
+        run: uv run pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: 의존성 설치
+        working-directory: frontend
+        run: npm ci
+      - name: 빌드
+        working-directory: frontend
+        run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      # 배포 이미지가 빌드되는지만 확인합니다. push하지 않습니다.
+      - name: 이미지 빌드
+        run: docker build -t shingomate-ci .
