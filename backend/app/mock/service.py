@@ -368,8 +368,8 @@ def list_reports(session: Session, device_id: str, status: str | None, limit: in
     page, has_more = rows[:limit], len(rows) > limit
 
     items = []
+    thumb_cache: dict[str, store.AnalysisThumbs] = {}
     for r in page:
-        photos = _report_photos(session, r)
         items.append(
             ReportListItem(
                 id=r.id,
@@ -381,7 +381,7 @@ def list_reports(session: Session, device_id: str, status: str | None, limit: in
                 district=r.district,
                 dong=r.dong,
                 created_at=r.created_at,
-                thumbnail_url=photos[0].url if photos else None,
+                thumbnail_url=store.thumbnail_url(session, r, thumb_cache),
                 resumable=r.status == "preparing",
             )
         )
