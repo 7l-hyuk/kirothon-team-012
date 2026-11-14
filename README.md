@@ -2,7 +2,7 @@
 
 길에서 불법주정차나 쓰레기 무단투기를 보고도 "이게 신고가 되나, 어디에 하나" 몰라서 지나치는 사람에게, 사진 한 장으로 신고 가능 여부를 알려 주고 반려되지 않게 증거 준비와 접수 과정을 끝까지 안내하는 AI 어시스턴스입니다.
 
-**Demo:** https://www.room2ate.cloud
+**Demo:** https://www.room2ate.cloud · 시연 영상: https://youtu.be/hCNQ0OqvOq4
 
 ---
 
