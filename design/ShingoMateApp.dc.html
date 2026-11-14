@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap"><style>body{margin:0;background:#eceef1}a{color:#14171c}a:hover{color:#5b6370}@keyframes smPulse{0%,100%{opacity:.35}50%{opacity:1}}</style></helmet>
+<x-import component="IOSDevice" from="./ios-frame.jsx" width="{{ devW }}" height="{{ devH }}" hint-size="390px,844px">
+<div style="width:390px;height:844px;display:flex;flex-direction:column;background:#fff;font-family:'Noto Sans KR',sans-serif;color:#14171c;position:relative;overflow:hidden;padding-top:54px;box-sizing:border-box;font-size:15px;line-height:1.55;letter-spacing:-0.01em">
+
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="S1 홈" style="flex:1;min-height:0;overflow:auto;padding:20px 20px 24px;display:flex;flex-direction:column;gap:20px">
+  <div style="font-size:13px;font-weight:700;letter-spacing:0.02em">신고메이트</div>
+  <sc-if value="{{ hasResume }}" hint-placeholder-val="{{ true }}">
+  <button onClick="{{ goMine }}" style="display:flex;align-items:center;gap:12px;text-align:left;background:#f5f6f8;border:1px solid #e3e6ea;border-radius:12px;padding:12px;cursor:pointer;font-family:inherit;color:inherit" style-hover="border-color:#14171c">
+    <div style="width:44px;height:44px;flex:none;border-radius:8px;background:repeating-linear-gradient(135deg,#eef0f3 0 6px,#dfe3e8 6px 12px)"></div>
+    <div style="flex:1;min-width:0"><div style="font-size:12px;color:#5b6370">이어서 하기</div><div style="font-size:14px;font-weight:500">불법 광고물 · 증거 1/3</div></div>
+    <div style="font-size:18px;color:#5b6370">›</div>
+  </button>
+  </sc-if>
+  <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+    <h1 style="margin:0;font-size:28px;line-height:1.3;font-weight:700;letter-spacing:-0.03em">무슨 불편을 겪으셨나요?</h1>
+    <p style="margin:0;color:#5b6370;text-wrap:pretty">사진 한 장이나 한 줄이면 됩니다. 신고가 되는지부터 알려 드릴게요.</p>
+  </div>
+  <sc-if value="{{ fromCase }}" hint-placeholder-val="{{ false }}">
+    <div style="font-size:13px;background:#f5f6f8;border-radius:8px;padding:8px 12px">사례와 같은 유형(불법주정차)으로 시작해요.</div>
+  </sc-if>
+  <div style="border:1.5px solid #14171c;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px">
+    <sc-if value="{{ hasPhoto }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:64px;height:64px;border-radius:8px;background:repeating-linear-gradient(135deg,#eef0f3 0 6px,#dfe3e8 6px 12px);display:flex;align-items:center;justify-content:center;font:10px ui-monospace,Menlo,monospace;color:#5b6370">사진 1장</div>
+        <button onClick="{{ togglePhoto }}" style="border:none;background:none;font:13px 'Noto Sans KR',sans-serif;color:#5b6370;cursor:pointer;min-height:44px;text-decoration:underline">빼기</button>
+      </div>
+    </sc-if>
+    <textarea value="{{ text }}" onChange="{{ onText }}" placeholder="예: 인도에 차가 올라와 있어요" rows="2" style="border:none;outline:none;resize:none;font:15px/1.55 'Noto Sans KR',sans-serif;color:#14171c;width:100%;padding:0;background:transparent"></textarea>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button onClick="{{ togglePhoto }}" style="height:44px;padding:0 12px;border:1px solid #c9ced6;border-radius:10px;background:#fff;font:500 14px 'Noto Sans KR',sans-serif;color:#14171c;cursor:pointer;white-space:nowrap;flex:none" style-hover="border-color:#14171c">＋ 카메라</button>
+      <button onClick="{{ togglePhoto }}" style="height:44px;padding:0 12px;border:1px solid #c9ced6;border-radius:10px;background:#fff;font:500 14px 'Noto Sans KR',sans-serif;color:#14171c;cursor:pointer;white-space:nowrap;flex:none" style-hover="border-color:#14171c">＋ 갤러리</button>
+      <div style="flex:1"></div>
+      <button onClick="{{ send }}" style="height:44px;padding:0 18px;border:none;border-radius:10px;background:{{ sendBg }};font:700 14px 'Noto Sans KR',sans-serif;color:#fff;cursor:pointer;white-space:nowrap;flex:none">보내기</button>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <sc-for list="{{ chips }}" as="c" hint-placeholder-count="4">
+      <button onClick="{{ c.onClick }}" style="align-self:flex-start;min-height:44px;padding:8px 14px;border:1px solid #e3e6ea;border-radius:22px;background:#fff;font:14px 'Noto Sans KR',sans-serif;color:#14171c;cursor:pointer;text-align:left" style-hover="border-color:#14171c">{{ c.label }}</button>
+    </sc-for>
+  </div>
+  <div style="margin-top:auto;font-size:12px;color:#5b6370">사람이 다쳤거나 위험이 진행 중이면 112 · 119에 먼저 연락하세요.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isChat }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="어시스턴스 대화" style="flex:1;min-height:0;display:flex;flex-direction:column;background:#f5f6f8">
+  <div style="background:#fff;border-bottom:1px solid #e3e6ea;padding:0 8px 10px">
+    <div style="display:flex;align-items:center;height:44px">
+      <button onClick="{{ goHome }}" style="width:44px;height:44px;border:none;background:none;font-size:24px;color:#14171c;cursor:pointer">‹</button>
+      <div style="flex:1;font-weight:700;font-size:16px">신고 도우미</div>
+      <div style="font-size:13px;color:#5b6370;padding-right:12px">{{ countLabel }}</div>
+    </div>
+    <div style="display:flex;gap:4px;padding:0 12px">
+      <sc-for list="{{ stages }}" as="s" hint-placeholder-count="5">
+        <div style="flex:1;display:flex;flex-direction:column;gap:5px">
+          <div style="height:3px;border-radius:2px;background:{{ s.bar }}"></div>
+          <div style="font-size:11px;color:{{ s.color }};font-weight:{{ s.weight }};white-space:nowrap">{{ s.label }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <div ref="{{ scrollRef }}" style="flex:1;min-height:0;overflow:auto;padding:16px 16px 50px;display:flex;flex-direction:column;gap:10px">
+
+    <div style="align-self:flex-end;display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      <div style="width:150px;height:110px;border-radius:10px;background:repeating-linear-gradient(135deg,#e9ecf0 0 6px,#dadee4 6px 12px);display:flex;align-items:center;justify-content:center;font:11px ui-monospace,Menlo,monospace;color:#5b6370;text-align:center;padding:8px;box-sizing:border-box">{{ photoLabel }}</div>
+      <div style="max-width:280px;background:#14171c;color:#fff;border-radius:14px 4px 14px 14px;padding:9px 13px">{{ sent }}</div>
+    </div>
+
+    <sc-if value="{{ analyzing }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="S2 분석 중" style="align-self:flex-start;max-width:300px;background:#fff;border:1px solid #e3e6ea;border-radius:4px 14px 14px 14px;padding:10px 13px">
+        <div>사진을 살펴보고 있어요</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#5b6370;margin-top:4px"><span style="width:8px;height:8px;border-radius:50%;background:#14171c;animation:smPulse 1s infinite"></span>{{ phaseText }}</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showBResult }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="S3 신고 불가" style="background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="width:22px;height:22px;border-radius:50%;background:#eef0f3;color:#5b6370;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">–</span><span style="font-weight:700;font-size:16px">신고가 어려운 상황이에요</span></div>
+        <div style="text-wrap:pretty">아파트 단지 안 주차장은 사유지라 주민신고 대상이 아니에요. 관리사무소에 문의해 보세요.</div>
+        <div style="background:#f5f6f8;border-radius:8px;padding:10px 12px;font-size:13px;color:#5b6370">주민신고는 도로 위 6대 금지구역(소화전, 교차로 모퉁이, 버스정류소, 횡단보도, 어린이보호구역, 인도)에만 적용돼요.</div>
+        <button onClick="{{ goHome }}" style="height:48px;border-radius:10px;background:#fff;border:1.5px solid #14171c;font:700 15px 'Noto Sans KR',sans-serif;color:#14171c;cursor:pointer">다른 상황 입력하기</button>
+        <div style="font-size:11px;color:#5b6370">참고용 안내이며 최종 판단은 담당 기관이 합니다.</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showS3 }}" hint-placeholder-val="{{ false }}">
+      <div style="align-self:flex-start;max-width:310px;background:#fff;border:1px solid #e3e6ea;border-radius:4px 14px 14px 14px;padding:10px 13px;text-wrap:pretty">인도 위에 주차된 차량 1대와, 전봇대 아래 무단투기된 쓰레기가 보여요. 아래 2건을 신고할 수 있습니다.</div>
+      <div data-screen-label="S3 항목 선택" style="background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="align-self:flex-start;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:#14171c;color:#fff">신고</span>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <button onClick="{{ togglePark }}" aria-label="불법주정차 선택" style="width:44px;height:44px;margin:-10px -10px -10px -10px;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none"><span style="width:22px;height:22px;border-radius:6px;border:1.5px solid #14171c;background:{{ parkBox }};color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;box-sizing:border-box">✓</span></button>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700">불법주정차 (인도)</div>
+              <div style="font-size:13px;color:#5b6370">과태료 부과 대상 · 안전신문고</div>
+              <button onClick="{{ whyPark }}" style="border:none;background:none;padding:0;min-height:32px;font:13px 'Noto Sans KR',sans-serif;color:#14171c;text-decoration:underline;cursor:pointer">왜 신고가 되나요?</button>
+              <sc-if value="{{ whyParkOpen }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;background:#f5f6f8;border-radius:8px;padding:8px 10px">인도는 6대 주정차 금지구역이라 주민 신고만으로 과태료가 부과됩니다.</div></sc-if>
+            </div>
+          </div>
+        </div>
+        <div style="height:1px;background:#e3e6ea"></div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="align-self:flex-start;font-size:11px;font-weight:700;padding:1px 7px;border-radius:4px;border:1px solid #14171c;color:#14171c">민원</span>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <button onClick="{{ toggleTrash }}" aria-label="쓰레기 무단투기 선택" style="width:44px;height:44px;margin:-10px;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none"><span style="width:22px;height:22px;border-radius:6px;border:1.5px solid #14171c;background:{{ trashBox }};color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;box-sizing:border-box">✓</span></button>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700">쓰레기 무단투기</div>
+              <div style="font-size:13px;color:#5b6370">구청 청소과 처리 · 안전신문고</div>
+              <button onClick="{{ whyTrash }}" style="border:none;background:none;padding:0;min-height:32px;font:13px 'Noto Sans KR',sans-serif;color:#14171c;text-decoration:underline;cursor:pointer">왜 신고가 되나요?</button>
+              <sc-if value="{{ whyTrashOpen }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;background:#f5f6f8;border-radius:8px;padding:8px 10px">종량제 봉투를 쓰지 않고 버린 생활쓰레기는 무단투기로, 구청이 수거하고 단속합니다.</div></sc-if>
+            </div>
+          </div>
+        </div>
+        <div style="height:1px;background:#e3e6ea"></div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:12px;font-weight:700;color:#5b6370">신고가 어려운 항목</div>
+          <div style="display:flex;gap:12px;color:#5b6370"><span style="width:22px;text-align:center;flex:none">–</span><div><div style="font-weight:500">전봇대 낙서</div><div style="font-size:13px">아직 안내하지 못하는 유형이에요</div></div></div>
+        </div>
+        <sc-if value="{{ s3Active }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ startPrep }}" style="height:48px;border-radius:10px;background:{{ prepBg }};border:none;font:700 15px 'Noto Sans KR',sans-serif;color:#fff;cursor:pointer">{{ prepLabel }}</button>
+        </sc-if>
+        <div style="font-size:11px;color:#5b6370">참고용 안내이며 최종 판단은 담당 기관이 합니다.</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showTrash }}" hint-placeholder-val="{{ false }}">
+      <div style="align-self:flex-start;max-width:310px;background:#fff;border:1px solid #e3e6ea;border-radius:4px 14px 14px 14px;padding:10px 13px">쓰레기 무단투기부터 준비할게요. 사진이 1장 더 필요해요.</div>
+      <div data-screen-label="S4 증거 안내" style="background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div style="font-weight:700">쓰레기 무단투기 · 필요한 사진 2장</div>
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <span style="width:22px;height:22px;flex:none;border-radius:50%;background:#1f7a45;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:1px">✓</span>
+          <div><div>쓰레기 전체가 보이는 사진</div><div style="font-size:13px;color:#1f7a45">올리신 사진으로 충분해요</div></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <span style="width:22px;height:22px;flex:none;border-radius:50%;border:1.5px solid {{ slot2Border }};background:{{ slot2Bg }};color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:1px;box-sizing:border-box">{{ slot2Mark }}</span>
+          <div style="flex:1"><div>주변 건물이나 도로명이 보이는 사진</div><div style="font-size:13px;color:{{ slot2Color }}">{{ slot2Note }}</div></div>
+        </div>
+        <sc-if value="{{ s4Active }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ shoot1 }}" style="height:48px;border-radius:10px;background:#14171c;border:none;font:700 15px 'Noto Sans KR',sans-serif;color:#fff;cursor:pointer">촬영하기</button>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showShot1 }}" hint-placeholder-val="{{ false }}">
+      <div style="align-self:flex-end;width:150px;height:110px;border-radius:10px;background:repeating-linear-gradient(135deg,#e9ecf0 0 6px,#dadee4 6px 12px);display:flex;align-items:center;justify-content:center;font:11px ui-monospace,Menlo,monospace;color:#5b6370;text-align:center;padding:8px;box-sizing:border-box">표지판이 잘린 주변 사진</div>
+    </sc-if>
+    <sc-if value="{{ checking }}" hint-placeholder-val="{{ false }}">
+      <div style="align-self:flex-start;background:#fff;border:1px solid #e3e6ea;border-radius:4px 14px 14px 14px;padding:10px 13px;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#14171c;animation:smPulse 1s infinite"></span>사진을 확인하고 있어요</div>
+    </sc-if>
+    <sc-if value="{{ showBad }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="S5 불충분" style="background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="width:22px;height:22px;border-radius:50%;background:#c26a00;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">!</span><span style="font-weight:700;color:#9a5200">불충분</span><span style="font-size:13px;color:#5b6370">위치가 보이는 사진</span></div>
+        <div style="text-wrap:pretty">도로명 표지판이 잘려서 위치를 알기 어려워요. 두세 걸음 뒤로 물러나서 건물 간판이 함께 나오게 다시 찍어 주세요.</div>
+        <sc-if value="{{ badActive }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ shoot2 }}" style="height:48px;border-radius:10px;background:#14171c;border:none;font:700 15px 'Noto Sans KR',sans-serif;color:#fff;cursor:pointer">다시 촬영하기</button>
+        </sc-if>
+        <div style="font-size:11px;color:#5b6370">참고용 안내이며 최종 판단은 담당 기관이 합니다.</div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ showShot2 }}" hint-placeholder-val="{{ false }}">
+      <div style="align-self:flex-end;width:150px;height:110px;border-radius:10px;background:repeating-linear-gradient(135deg,#e9ecf0 0 6px,#dadee4 6px 12px);display:flex;align-items:center;justify-content:center;font:11px ui-monospace,Menlo,monospace;color:#5b6370;text-align:center;padding:8px;box-sizing:border-box">건물 간판과 도로명이 보이는 사진</div>
+    </sc-if>
+    <sc-if value="{{ showGood }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="S5 충분" style="background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="width:22px;height:22px;border-radius:50%;background:#1f7a45;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center">✓</span><span style="font-weight:700;color:#1f7a45">충분</span><span style="font-size:13px;color:#5b6370">위치가 보이는 사진</span></div>
+        <div>위치가 잘 보여요. 이 사진으로 충분합니다.</div>
+        <sc-if value="{{ goodActive }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ startS7 }}" style="height:48px;border-radius:10px;background:#14171c;border:none;font:700 15px 'Noto Sans KR',sans-serif;color:#fff;cursor:pointer">접수 방법 안내받기</button>
+        </sc-if>
+        <div style="font-size:11px;color:#5b6370">참고용 안내이며 최종 판단은 담당 기관이 합니다.</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showS7 }}" hint-placeholder-val="{{ false }}">
+      <div style="align-self:flex-start;max-width:310px;background:#fff;border:1px solid #e3e6ea;border-radius:4px 14px 14px 14px;padding:10px 13px">사진 2장이 모두 준비됐어요. 한 단계씩 같이 접수해 볼게요.</div>
+      <div data-screen-label="S7 접수 안내" style="background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="font-size:13px;color:#5b6370;flex:1">쓰레기 무단투기 접수</div>
+          <div style="font-size:13px;font-weight:700">{{ s7Num }} / 7</div>
+        </div>
+        <div style="display:flex;gap:3px"><sc-for list="{{ s7Dots }}" as="d" hint-placeholder-count="7"><div style="flex:1;height:3px;border-radius:2px;background:{{ d.bg }}"></div></sc-for></div>
+        <div style="font-size:18px;line-height:1.45;font-weight:500;text-wrap:pretty">{{ s7.pre }}<strong style="font-weight:700">{{ s7.b }}</strong>{{ s7.post }}</div>
+        <sc-if value="{{ s7HasSub }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:#5b6370;margin-top:-8px">{{ s7.sub }}</div></sc-if>
+        <sc-if value="{{ s7Photos }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:8px">
+            <div style="flex:1;height:96px;border-radius:8px;background:repeating-linear-gradient(135deg,#eef0f3 0 6px,#dfe3e8 6px 12px);display:flex;align-items:center;justify-content:center;font:10px ui-monospace,Menlo,monospace;color:#5b6370;text-align:center;padding:6px;box-sizing:border-box">쓰레기 전체</div>
+            <div style="flex:1;height:96px;border-radius:8px;background:repeating-linear-gradient(135deg,#eef0f3 0 6px,#dfe3e8 6px 12px);display:flex;align-items:center;justify-content:center;font:10px ui-monospace,Menlo,monospace;color:#5b6370;text-align:center;padding:6px;box-sizing:border-box">간판·도로명</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ s7Draft }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="background:#f5f6f8;border-radius:8px;padding:12px;font-size:14px;line-height:1.65;text-wrap:pretty">{{ draftText }}</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#5b6370">다시 써 줘
+              <button onClick="{{ draftShort }}" style="min-height:36px;padding:0 12px;border:1px solid {{ shortBorder }};border-radius:18px;background:#fff;font:13px 'Noto Sans KR',sans-serif;color:#14171c;cursor:pointer">더 짧게</button>
+              <button onClick="{{ draftPolite }}" style="min-height:36px;padding:0 12px;border:1px solid {{ politeBorder }};border-radius:18px;background:#fff;font:13px 'Noto Sans KR',sans-serif;color:#14171c;cursor:pointer">더 정중하게</button>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ s7Num7 }}" hint-placeholder-val="{{ false }}">
+          <input value="{{ receipt }}" onChange="{{ onReceipt }}" placeholder="접수번호 (선택)" style="height:48px;border:1px solid #c9ced6;border-radius:10px;padding:0 12px;font:15px 'Noto Sans KR',sans-serif;color:#14171c;outline:none;box-sizing:border-box;width:100%" style-focus="border-color:#14171c">
+        </sc-if>
+        <div style="display:flex;gap:8px">
+          <sc-if value="{{ s7CanBack }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ s7Back }}" style="height:48px;padding:0 16px;border-radius:10px;background:#fff;border:1px solid #c9ced6;font:500 15px 'Noto Sans KR',sans-serif;color:#14171c;cursor:pointer">이전</button>
+          </sc-if>
+          <button onClick="{{ s7Next }}" style="flex:1;height:48px;border-radius:10px;background:#14171c;border:none;font:700 15px 'Noto Sans KR',sans-serif;color:#fff;cursor:pointer">{{ s7.btn }}</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showTrashDone }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="S8 다음 항목" style="background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="width:22px;height:22px;border-radius:50%;background:#1f7a45;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center">✓</span><span style="font-weight:700">쓰레기 무단투기 접수 완료</span></div>
+        <sc-if value="{{ showS8 }}" hint-placeholder-val="{{ true }}">
+          <div style="height:1px;background:#e3e6ea"></div>
+          <div style="font-size:13px;color:#5b6370">다음</div>
+          <div style="font-size:18px;font-weight:700;margin-top:-8px">불법주정차 (인도)</div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:14px">
+            <div style="display:flex;gap:8px"><span style="color:#5b6370;flex:none;width:92px">안전신문고 로그인</span><span>이미 하셨어요, 건너뜁니다</span></div>
+            <div style="display:flex;gap:8px"><span style="color:#5b6370;flex:none;width:92px">위치 확인</span><span>같은 장소라 그대로 씁니다</span></div>
+            <div style="display:flex;gap:8px"><span style="color:#5b6370;flex:none;width:92px">사진</span><span style="font-weight:700">안전신문고 앱에서 새로 찍어야 해요</span></div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button onClick="{{ later }}" style="height:48px;padding:0 18px;border-radius:10px;background:#fff;border:1px solid #c9ced6;font:500 15px 'Noto Sans KR',sans-serif;color:#14171c;cursor:pointer">나중에</button>
+            <button onClick="{{ startPark }}" style="flex:1;height:48px;border-radius:10px;background:#14171c;border:none;font:700 15px 'Noto Sans KR',sans-serif;color:#fff;cursor:pointer">이어서 하기</button>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showPark }}" hint-placeholder-val="{{ false }}">
+      <div style="align-self:flex-start;max-width:310px;background:#fff;border:1px solid #e3e6ea;border-radius:4px 14px 14px 14px;padding:10px 13px;text-wrap:pretty">불법주정차는 안전신문고 앱 안에서 찍은 사진만 인정돼요. 올리신 사진으로 미리 점검해 봤어요.</div>
+      <div data-screen-label="S6-1 사전 점검" style="background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div style="font-weight:700">불법주정차 사전 점검</div>
+        <div style="display:flex;gap:10px;align-items:center"><span style="width:22px;height:22px;flex:none;border-radius:50%;background:#1f7a45;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center">✓</span><div>금지구역: 인도 위 주차</div></div>
+        <div style="display:flex;gap:10px;align-items:center"><span style="width:22px;height:22px;flex:none;border-radius:50%;background:#1f7a45;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center">✓</span><div>번호판이 식별돼요</div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="width:22px;height:22px;flex:none;border-radius:50%;background:#c26a00;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px">!</span><div><div style="font-weight:700;color:#9a5200">주변 배경이 부족해요</div><div style="font-size:14px;text-wrap:pretty">차량만 크게 찍혔어요. 인도 경계석과 옆 건물이 함께 보이게 찍어야 합니다.</div></div></div>
+        <div style="font-size:11px;color:#5b6370">참고용 안내이며 최종 판단은 담당 기관이 합니다.</div>
+      </div>
+      <div data-screen-label="S6-2 본촬영 가이드" style="background:#fff;border:1px solid #e3e6ea;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div style="font-weight:700">안전신문고 앱에서 이렇게 찍으세요</div>
+        <div style="display:flex;gap:10px"><span style="width:24px;height:24px;flex:none;border-radius:50%;border:1.5px solid #14171c;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;box-sizing:border-box">1</span><div>차량 뒤쪽에서 번호판과 인도 경계석이 함께 나오게 1장</div></div>
+        <div style="display:flex;gap:10px"><span style="width:24px;height:24px;flex:none;border-radius:50%;border:1.5px solid #14171c;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;box-sizing:border-box">2</span><div>그 자리에서 움직이지 말고 1분 기다리기</div></div>
+        <div style="display:flex;gap:10px"><span style="width:24px;height:24px;flex:none;border-radius:50%;border:1.5px solid #14171c;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;box-sizing:border-box">3</span><div>같은 위치, 같은 방향으로 1장 더</div></div>
+        <div style="background:#fdf1e0;color:#7a4100;border-radius:8px;padding:10px 12px;font-size:14px"><strong>주의:</strong> 앞에서 1장, 옆에서 1장은 반려돼요.</div>
+        <sc-if value="{{ parkActive }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ startTimer }}" style="height:48px;border-radius:10px;background:#14171c;border:none;font:700 15px 'Noto Sans KR',sans-serif;color:#fff;cursor:pointer">1분 타이머 시작</button>
+        </sc-if>
+      </div>
+    </sc-if>
+    <sc-if value="{{ showSubmit }}" hint-placeholder-val="{{ false }}">
+      <div style="align-self:flex-start;max-width:310px;background:#fff;border:1px solid #e3e6ea;border-radius:4px 14px 14px 14px;padding:10px 13px">1분 간격으로 2장을 찍으셨어요. 안전신문고 앱에서 그대로 제출해 주세요.</div>
+      <button onClick="{{ finish }}" style="height:48px;flex:none;border-radius:10px;background:#14171c;border:none;font:700 15px 'Noto Sans KR',sans-serif;color:#fff;cursor:pointer">제출했어요</button>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="S9 완료" style="flex:1;min-height:0;overflow:auto;padding:28px 20px 24px;display:flex;flex-direction:column;gap:16px">
+  <span style="width:44px;height:44px;border-radius:50%;background:#1f7a45;color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center">✓</span>
+  <h1 style="margin:0;font-size:26px;line-height:1.3;letter-spacing:-0.03em">{{ doneTitle }}</h1>
+  <div style="display:flex;flex-direction:column;border:1px solid #e3e6ea;border-radius:12px">
+    <sc-for list="{{ doneItems }}" as="d" hint-placeholder-count="2">
+      <div style="padding:14px 16px;border-top:{{ d.sep }};display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:4px;border:1px solid #14171c;background:{{ d.bBg }};color:{{ d.bColor }}">{{ d.kind }}</span><span style="font-weight:700">{{ d.type }}</span></div>
+        <div style="font-size:13px;color:#5b6370">접수처 {{ d.to }}</div>
+        <div style="font-size:13px;color:#5b6370">접수번호 {{ d.no }}</div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="background:#f5f6f8;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div style="text-wrap:pretty">이 경험을 다른 사람에게 알려 주시겠어요? 개인정보는 지우고 공유됩니다.</div>
+    <button onClick="{{ shareFromDone }}" style="height:48px;border-radius:10px;background:#fff;border:1.5px solid #14171c;font:700 15px 'Noto Sans KR',sans-serif;color:#14171c;cursor:pointer">사례로 공유하기</button>
+  </div>
+  <button onClick="{{ goMine }}" style="height:48px;flex:none;border-radius:10px;background:#14171c;border:none;font:700 15px 'Noto Sans KR',sans-serif;color:#fff;cursor:pointer">내 신고에서 보기</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isMine }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="S10 내 신고" style="flex:1;min-height:0;overflow:auto;padding:20px 20px 24px;display:flex;flex-direction:column;gap:16px">
+  <h1 style="margin:0;font-size:24px;letter-spacing:-0.03em">내 신고</h1>
+  <div style="display:flex;gap:6px;flex-wrap:wrap">
+    <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+      <button onClick="{{ f.onClick }}" style="min-height:36px;padding:0 13px;border-radius:18px;border:1px solid {{ f.border }};background:{{ f.bg }};color:{{ f.color }};font:500 13px 'Noto Sans KR',sans-serif;cursor:pointer">{{ f.label }}</button>
+    </sc-for>
+  </div>
+  <sc-if value="{{ mineEmpty }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#5b6370">
+      <div>아직 신고한 내역이 없어요</div>
+      <button onClick="{{ goHome }}" style="height:48px;padding:0 24px;border-radius:10px;background:#14171c;border:none;font:700 15px 'Noto Sans KR',sans-serif;color:#fff;cursor:pointer">신고하러 가기</button>
+    </div>
+  </sc-if>
+  <div style="display:flex;flex-direction:column">
+    <sc-for list="{{ mineItems }}" as="m" hint-placeholder-count="3">
+      <div onClick="{{ m.onClick }}" style="display:flex;gap:12px;padding:14px 0;border-bottom:1px solid #e3e6ea;cursor:pointer">
+        <div style="width:64px;height:64px;flex:none;border-radius:8px;background:repeating-linear-gradient(135deg,#eef0f3 0 6px,#dfe3e8 6px 12px);display:flex;align-items:center;justify-content:center;font:10px ui-monospace,Menlo,monospace;color:#5b6370">사진</div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+          <div style="font-weight:700">{{ m.type }}</div>
+          <div style="font-size:13px;color:#5b6370">{{ m.place }}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:3px">
+            <span style="font-size:12px;font-weight:500;padding:2px 8px;border-radius:4px;background:{{ m.sBg }};color:{{ m.sColor }}">{{ m.status }}</span>
+            <sc-if value="{{ m.cont }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;font-weight:700;text-decoration:underline">이어서 하기</span></sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="S11 내 신고 상세" style="flex:1;min-height:0;overflow:auto;padding:0 20px 24px;display:flex;flex-direction:column;gap:20px">
+  <div style="display:flex;align-items:center;height:44px;margin-left:-14px"><button onClick="{{ goMine }}" style="width:44px;height:44px;border:none;background:none;font-size:24px;color:#14171c;cursor:pointer">‹</button><span style="font-weight:700;font-size:16px">내 신고</span></div>
+  <div><h1 style="margin:0;font-size:22px;letter-spacing:-0.03em">{{ detail.type }}</h1><div style="font-size:13px;color:#5b6370">{{ detail.place }}</div></div>
+  <div style="display:flex;flex-direction:column;gap:0">
+    <sc-for list="{{ timeline }}" as="t" hint-placeholder-count="4">
+      <div style="display:flex;gap:12px">
+        <div style="display:flex;flex-direction:column;align-items:center;width:14px;flex:none"><span style="width:12px;height:12px;border-radius:50%;border:1.5px solid #14171c;background:{{ t.dot }};box-sizing:border-box;margin-top:5px"></span><span style="flex:1;width:1.5px;background:{{ t.line }};min-height:16px"></span></div>
+        <div style="padding-bottom:12px"><div style="font-weight:500">{{ t.label }}</div><div style="font-size:13px;color:#5b6370">{{ t.note }}</div></div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px"><div style="font-size:13px;font-weight:700;color:#5b6370">첨부한 사진</div>
+    <div style="display:flex;gap:8px">
+      <div style="flex:1;height:100px;border-radius:8px;background:repeating-linear-gradient(135deg,#eef0f3 0 6px,#dfe3e8 6px 12px);display:flex;align-items:center;justify-content:center;font:10px ui-monospace,Menlo,monospace;color:#5b6370">첨부 사진 1</div>
+      <div style="flex:1;height:100px;border-radius:8px;background:repeating-linear-gradient(135deg,#eef0f3 0 6px,#dfe3e8 6px 12px);display:flex;align-items:center;justify-content:center;font:10px ui-monospace,Menlo,monospace;color:#5b6370">첨부 사진 2</div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px"><div style="font-size:13px;font-weight:700;color:#5b6370">제출한 신고 문구</div>
+    <div style="background:#f5f6f8;border-radius:8px;padding:12px;font-size:14px;line-height:1.65;text-wrap:pretty">서울시 마포구 ○○로 12 앞 전봇대 아래에 종량제 봉투를 쓰지 않은 생활쓰레기가 무단투기되어 있습니다. 2026년 11월 14일 오후 2시경 확인했으며, 악취와 통행 불편이 있어 수거와 단속을 요청드립니다.</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:4px;font-size:14px">
+    <div style="display:flex;gap:8px"><span style="color:#5b6370;width:64px;flex:none">접수처</span><span>{{ detail.to }}</span></div>
+    <div style="display:flex;gap:8px"><span style="color:#5b6370;width:64px;flex:none">접수번호</span><span>{{ detail.no }}</span></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px"><div style="font-size:13px;font-weight:700;color:#5b6370">처리 결과</div>
+    <div style="font-size:13px;color:#5b6370">안전신문고와 연동되지 않아요. 결과를 받으면 직접 골라 주세요.</div>
+    <div style="display:flex;gap:6px">
+      <sc-for list="{{ results }}" as="r" hint-placeholder-count="3">
+        <button onClick="{{ r.onClick }}" style="flex:1;height:44px;border-radius:10px;border:1px solid {{ r.border }};background:{{ r.bg }};color:{{ r.color }};font:500 14px 'Noto Sans KR',sans-serif;cursor:pointer">{{ r.label }}</button>
+      </sc-for>
+    </div>
+    <sc-if value="{{ rejected }}" hint-placeholder-val="{{ false }}">
+      <textarea value="{{ reason }}" onChange="{{ onReason }}" rows="2" placeholder="불수용 사유를 적어 두면 다음에 도움이 돼요" style="border:1px solid #c9ced6;border-radius:10px;padding:10px 12px;font:14px/1.55 'Noto Sans KR',sans-serif;color:#14171c;outline:none;resize:none" style-focus="border-color:#14171c"></textarea>
+    </sc-if>
+  </div>
+  <button onClick="{{ shareFromDetail }}" style="height:48px;flex:none;border-radius:10px;background:#fff;border:1.5px solid #14171c;font:700 15px 'Noto Sans KR',sans-serif;color:#14171c;cursor:pointer">사례로 공유하기</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isCases }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="S12 사례" style="flex:1;min-height:0;overflow:auto;padding:20px 20px 24px;display:flex;flex-direction:column;gap:16px">
+  <h1 style="margin:0;font-size:24px;letter-spacing:-0.03em">사례</h1>
+  <div style="display:flex;gap:6px;flex-wrap:wrap">
+    <sc-for list="{{ cfilters }}" as="f" hint-placeholder-count="5">
+      <button onClick="{{ f.onClick }}" style="min-height:36px;padding:0 13px;border-radius:18px;border:1px solid {{ f.border }};background:{{ f.bg }};color:{{ f.color }};font:500 13px 'Noto Sans KR',sans-serif;cursor:pointer">{{ f.label }}</button>
+    </sc-for>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:20px">
+    <sc-for list="{{ articles }}" as="a" hint-placeholder-count="3">
+      <div onClick="{{ a.onClick }}" style="display:flex;flex-direction:column;gap:8px;cursor:pointer">
+        <div style="height:140px;border-radius:10px;background:repeating-linear-gradient(135deg,#eef0f3 0 6px,#dfe3e8 6px 12px);display:flex;align-items:center;justify-content:center;font:11px ui-monospace,Menlo,monospace;color:#5b6370">{{ a.photo }}</div>
+        <div style="font-size:16px;font-weight:700;line-height:1.4;text-wrap:pretty">{{ a.title }}</div>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;color:#5b6370">
+          <span style="padding:1px 7px;border-radius:4px;border:1px solid #14171c;color:#14171c;font-weight:500">{{ a.type }}</span>
+          <span style="padding:2px 8px;border-radius:4px;background:#e8f4ec;color:#1f7a45;font-weight:500">{{ a.result }}</span>
+          <span>{{ a.gu }}</span><span>·</span><span>도움돼요 {{ a.likes }}</span>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isArticle }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="S13 아티클 상세" style="flex:1;min-height:0;display:flex;flex-direction:column">
+  <div style="flex:1;min-height:0;overflow:auto;padding:0 20px 20px;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:center;height:44px;margin-left:-14px;flex:none"><button onClick="{{ goCases }}" style="width:44px;height:44px;border:none;background:none;font-size:24px;color:#14171c;cursor:pointer">‹</button><span style="font-weight:700;font-size:16px">사례</span></div>
+    <h1 style="margin:0;font-size:22px;line-height:1.4;letter-spacing:-0.03em;text-wrap:pretty">{{ art.title }}</h1>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;color:#5b6370">
+      <span style="padding:1px 7px;border-radius:4px;border:1px solid #14171c;color:#14171c;font-weight:500">{{ art.type }}</span>
+      <span style="padding:2px 8px;border-radius:4px;background:#e8f4ec;color:#1f7a45;font-weight:500">{{ art.result }}</span>
+      <span>{{ art.gu }}</span><span>·</span><span>{{ art.when }}</span>
+    </div>
+    <sc-for list="{{ artSections }}" as="s" hint-placeholder-count="5">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="font-size:13px;font-weight:700;color:#5b6370">{{ s.h }}</div>
+        <sc-if value="{{ s.photo }}" hint-placeholder-val="{{ false }}">
+          <div style="height:120px;border-radius:10px;background:repeating-linear-gradient(135deg,#eef0f3 0 6px,#dfe3e8 6px 12px);display:flex;align-items:center;justify-content:center;font:11px ui-monospace,Menlo,monospace;color:#5b6370">가려진 사진</div>
+        </sc-if>
+        <div style="text-wrap:pretty">{{ s.body }}</div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:flex;gap:8px;padding:10px 20px;border-top:1px solid #e3e6ea">
+    <button onClick="{{ toggleHelp }}" style="height:48px;padding:0 14px;border-radius:10px;border:1px solid {{ helpBorder }};background:{{ helpBg }};color:{{ helpColor }};font:500 14px 'Noto Sans KR',sans-serif;cursor:pointer;white-space:nowrap">도움돼요 {{ artLikes }}</button>
+    <button onClick="{{ startFromCase }}" style="flex:1;height:48px;border-radius:10px;background:#14171c;border:none;font:700 15px 'Noto Sans KR',sans-serif;color:#fff;cursor:pointer">나도 비슷한 상황이에요</button>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isShare }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="S14 공유 동의" style="flex:1;min-height:0;overflow:auto;padding:0 20px 44px;display:flex;flex-direction:column;gap:16px">
+  <div style="display:flex;align-items:center;height:44px;margin-left:-14px;flex:none"><button onClick="{{ cancelShare }}" style="width:44px;height:44px;border:none;background:none;font-size:24px;color:#14171c;cursor:pointer">‹</button><span style="font-weight:700;font-size:16px">사례로 공유하기</span></div>
+  <div style="font-size:18px;font-weight:700;line-height:1.4">공유하기 전에 이렇게 지워요</div>
+  <div style="display:flex;gap:8px">
+    <div style="flex:1;display:flex;flex-direction:column;gap:6px"><div style="font-size:12px;color:#5b6370">원본</div>
+      <div style="height:120px;border-radius:8px;background:repeating-linear-gradient(135deg,#eef0f3 0 6px,#dfe3e8 6px 12px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font:10px ui-monospace,Menlo,monospace;color:#5b6370">차량 사진<span style="background:#fff;border:1px solid #14171c;color:#14171c;padding:1px 8px;border-radius:2px">12가 3456</span></div>
+      <div style="font-size:12px;line-height:1.5">마포구 ○○로 12<br>11월 14일 오후 2시</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:6px"><div style="font-size:12px;font-weight:700">공유될 모습</div>
+      <div style="height:120px;border-radius:8px;background:repeating-linear-gradient(135deg,#eef0f3 0 6px,#dfe3e8 6px 12px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font:10px ui-monospace,Menlo,monospace;color:#5b6370">차량 사진<span style="background:#14171c;color:#14171c;padding:1px 8px;border-radius:2px;border:1px solid #14171c">00가 0000</span></div>
+      <div style="font-size:12px;line-height:1.5">마포구<br>2026년 11월</div>
+    </div>
+  </div>
+  <div style="border:1px solid #e3e6ea;border-radius:10px;font-size:13px">
+    <div style="display:flex;gap:10px;padding:9px 12px"><span style="flex:1">차량 번호판, 사람 얼굴</span><span style="color:#5b6370">사진에서 가림</span></div>
+    <div style="display:flex;gap:10px;padding:9px 12px;border-top:1px solid #e3e6ea"><span style="flex:1">상세 주소</span><span style="color:#5b6370">구 단위까지만 표시</span></div>
+    <div style="display:flex;gap:10px;padding:9px 12px;border-top:1px solid #e3e6ea"><span style="flex:1">날짜와 시각</span><span style="color:#5b6370">월 단위까지만 표시</span></div>
+    <div style="display:flex;gap:10px;padding:9px 12px;border-top:1px solid #e3e6ea"><span style="flex:1">접수번호, 이름, 연락처</span><span style="color:#5b6370">삭제</span></div>
+    <div style="display:flex;gap:10px;padding:9px 12px;border-top:1px solid #e3e6ea"><span style="flex:1">전단지 속 전화번호·상호</span><span style="color:#5b6370">사진에서 가림</span></div>
+  </div>
+  <button onClick="{{ toggleAgree }}" style="display:flex;align-items:center;gap:10px;min-height:44px;border:none;background:none;padding:0;font:15px 'Noto Sans KR',sans-serif;color:#14171c;cursor:pointer;text-align:left"><span style="width:22px;height:22px;flex:none;border-radius:6px;border:1.5px solid #14171c;background:{{ agreeBox }};color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;box-sizing:border-box">✓</span>위 내용으로 공유하는 데 동의합니다</button>
+  <div style="display:flex;gap:8px">
+    <button onClick="{{ cancelShare }}" style="height:48px;padding:0 20px;border-radius:10px;background:#fff;border:1px solid #c9ced6;font:500 15px 'Noto Sans KR',sans-serif;color:#14171c;cursor:pointer">취소</button>
+    <button onClick="{{ doShare }}" style="flex:1;height:48px;border-radius:10px;background:{{ shareBg }};border:none;font:700 15px 'Noto Sans KR',sans-serif;color:#fff;cursor:pointer">공유하기</button>
+  </div>
+  <div style="font-size:12px;color:#5b6370">공유한 글은 내 신고 상세에서 언제든 내릴 수 있어요.</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+<div style="flex:none;display:flex;border-top:1px solid #e3e6ea;padding-bottom:30px;background:#fff">
+  <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+    <button onClick="{{ t.onClick }}" style="flex:1;height:52px;border:none;background:none;border-top:2px solid {{ t.bar }};margin-top:-1px;font:{{ t.weight }} 14px 'Noto Sans KR',sans-serif;color:{{ t.color }};cursor:pointer">{{ t.label }}</button>
+  </sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isTimer }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="S6-3 타이머" style="position:absolute;inset:0;z-index:10;background:#fff;padding:54px 24px 44px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center">
+  <div style="align-self:stretch;display:flex;justify-content:flex-end;height:44px"><button onClick="{{ cancelTimer }}" style="border:none;background:none;font:14px 'Noto Sans KR',sans-serif;color:#5b6370;cursor:pointer;min-height:44px">그만두기</button></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px">
+    <div style="width:240px;height:240px;border-radius:50%;background:conic-gradient(#14171c {{ ringPct }}%, #e3e6ea 0);display:flex;align-items:center;justify-content:center">
+      <div style="width:220px;height:220px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:64px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">{{ clock }}</div>
+    </div>
+    <sc-if value="{{ timerRunning }}" hint-placeholder-val="{{ true }}">
+      <div style="text-align:center;display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:18px;font-weight:700;line-height:1.45;text-wrap:balance">그 자리에서 기다려 주세요. 자리를 옮기면 반려될 수 있어요.</div>
+        <div style="font-size:13px;color:#5b6370">어린이보호구역은 5분 간격이 필요할 수 있어요</div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ timerDone }}" hint-placeholder-val="{{ false }}">
+      <div style="font-size:22px;font-weight:700;text-align:center">지금 두 번째 사진을 찍으세요</div>
+    </sc-if>
+  </div>
+  <sc-if value="{{ timerDone }}" hint-placeholder-val="{{ false }}">
+    <button onClick="{{ timerShot }}" style="align-self:stretch;height:52px;border-radius:10px;background:#14171c;border:none;font:700 16px 'Noto Sans KR',sans-serif;color:#fff;cursor:pointer">찍었어요</button>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;left:20px;right:20px;bottom:104px;z-index:20;background:#14171c;color:#fff;border-radius:10px;padding:12px 14px;font-size:14px;text-align:center">{{ toast }}</div>
+</sc-if>
+</div>
+</x-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;430px&quot;,&quot;height&quot;:&quot;900px&quot;},&quot;preset&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;s2&quot;,&quot;s3&quot;,&quot;s4&quot;,&quot;s5-bad&quot;,&quot;s5-good&quot;,&quot;s7&quot;,&quot;s7-draft&quot;,&quot;s8&quot;,&quot;s6&quot;,&quot;timer&quot;,&quot;s9&quot;,&quot;mine&quot;,&quot;detail&quot;,&quot;cases&quot;,&quot;article&quot;,&quot;share&quot;,&quot;b&quot;]},&quot;fastTimer&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;emptyHistory&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = this.base();
+  scrollRef = React.createRef();
+  t = [];
+  base() {
+    return { view: 'home', text: '', sent: '', hasPhoto: false, scen: 'A', p: 0, busy: false, phase: 0, park: true, trash: true, whyPark: false, whyTrash: false, s7: 0, draft: 0, receipt: '', sec: 60, timer: false, timerDone: false, filter: '전체', cfilter: '전체', item: 1, art: 1, result: '수용', reason: '', agree: false, shareFrom: 'done', helped: {}, toast: '', fromCase: false };
+  }
+  presets() {
+    const A = { view: 'chat', scen: 'A', sent: '인도에 차가 올라와 있어요' };
+    return {
+      home: {}, s2: { ...A, p: 1 }, s3: { ...A, p: 2 }, s4: { ...A, p: 3 }, 's5-bad': { ...A, p: 4 }, 's5-good': { ...A, p: 5 },
+      s7: { ...A, p: 6 }, 's7-draft': { ...A, p: 6, s7: 5 }, s8: { ...A, p: 7 }, s6: { ...A, p: 8 }, timer: { ...A, p: 8, timer: true, sec: 23 },
+      s9: { ...A, p: 10, view: 'done' }, mine: { view: 'mine' }, detail: { view: 'detail' }, cases: { view: 'cases' }, article: { view: 'article' }, share: { view: 'share' },
+      b: { view: 'chat', scen: 'B', sent: '아파트 주차장에 이중주차가 돼 있어요', p: 2 }
+    };
+  }
+  applyPreset() {
+    this.clear();
+    const p = this.presets()[this.props.preset] || {};
+    this.setState({ ...this.base(), ...p });
+  }
+  componentDidMount() { this._preset = this.props.preset; if (this.props.preset && this.props.preset !== 'home') this.applyPreset(); }
+  componentDidUpdate() {
+    if (this._preset !== this.props.preset) { this._preset = this.props.preset; this.applyPreset(); }
+    const s = this.state, k = [s.p, s.busy, s.s7, s.view, s.draft, s.phase].join('|');
+    if (k !== this._k) {
+      this._k = k;
+      const go = () => { const el = this.scrollRef.current; if (el) el.scrollTop = el.scrollHeight; };
+      requestAnimationFrame(go); setTimeout(go, 120);
+    }
+  }
+  componentWillUnmount() { this.clear(); clearTimeout(this.tt); }
+  clear() { this.t.forEach(clearTimeout); this.t = []; clearInterval(this.iv); }
+  wait(fn, ms) { this.t.push(setTimeout(fn, ms)); }
+  toast(m) { this.setState({ toast: m }); clearTimeout(this.tt); this.tt = setTimeout(() => this.setState({ toast: '' }), 1800); }
+  send = () => {
+    const s = this.state, text = s.text.trim();
+    if (!text && !s.hasPhoto) return;
+    const sent = text || '이거 신고할 수 있나요?';
+    this.clear();
+    this.setState({ ...this.base(), view: 'chat', sent, scen: /아파트|주차장|단지/.test(sent) ? 'B' : 'A', p: 1, phase: 0 });
+    this.wait(() => this.setState({ phase: 1 }), 1200);
+    this.wait(() => this.setState({ p: 2 }), 2400);
+  };
+  step(p) { this.setState({ p, busy: true }); this.wait(() => this.setState({ busy: false }), 1100); }
+  finish = () => this.setState({ view: 'done', p: 10 });
+  startTimer = () => {
+    this.setState({ timer: true, sec: 60, timerDone: false });
+    clearInterval(this.iv);
+    this.iv = setInterval(() => {
+      this.setState(s => {
+        if (s.sec <= 1) { clearInterval(this.iv); try { navigator.vibrate && navigator.vibrate(200); } catch (e) {} return { sec: 0, timerDone: true }; }
+        return { sec: s.sec - 1 };
+      });
+    }, (this.props.fastTimer ?? true) ? 100 : 1000);
+  };
+  renderVals() {
+    const s = this.state, set = o => () => this.setState(o);
+    const ink = '#14171c', sub = '#5b6370', line = '#e3e6ea';
+    const A = s.scen === 'A', chat = s.view === 'chat', n = (s.park ? 1 : 0) + (s.trash ? 1 : 0);
+    const chk = s.p === 4 || s.p === 5;
+    const stage = s.view === 'done' ? 4 : !A ? (s.p < 2 ? 0 : 1) : s.p <= 1 ? 0 : s.p === 2 ? 1 : (s.p === 6 || s.p === 7) ? 3 : 2;
+    const steps = [
+      { pre: '안전신문고에 접속하세요', sub: 'safetyreport.go.kr 또는 앱', btn: '안전신문고 열기', msg: '안전신문고를 열었어요' },
+      { pre: '로그인하세요', sub: '회원이 아니면 본인인증 후 비회원 신고도 가능합니다', btn: '했어요' },
+      { b: '생활불편 신고 > 쓰레기·폐기물', post: ' 을 선택하세요', btn: '했어요' },
+      { b: '사진', post: ' 항목에 아래 2장을 첨부하세요', btn: '사진 저장', msg: '사진 2장을 저장했어요' },
+      { b: '발생 위치', post: ' 는 지도에서 현재 위치를 확인하세요', btn: '했어요' },
+      { b: '내용', post: ' 항목에 아래 글을 붙여 넣으세요', btn: '글 복사', msg: '글을 복사했어요' },
+      { pre: '제출하고, 접수번호를 알려 주세요 (선택)', btn: '접수 완료' }
+    ];
+    const drafts = [
+      '서울시 마포구 ○○로 12 앞 전봇대 아래에 종량제 봉투를 쓰지 않은 생활쓰레기가 무단투기되어 있습니다. 2026년 11월 14일 오후 2시경 확인했으며, 악취와 통행 불편이 있어 수거와 단속을 요청드립니다.',
+      '서울시 마포구 ○○로 12 앞 전봇대 아래에 생활쓰레기가 무단투기되어 있습니다. 2026년 11월 14일 오후 2시경 확인했습니다. 수거와 단속을 요청드립니다.',
+      '안녕하세요. 서울시 마포구 ○○로 12 앞 전봇대 아래에 종량제 봉투를 쓰지 않은 생활쓰레기가 무단투기되어 있어 알려 드립니다. 2026년 11월 14일 오후 2시경 확인했으며, 악취와 통행 불편이 있습니다. 수거와 단속을 부탁드립니다. 감사합니다.'
+    ];
+    const cur = steps[s.s7];
+    const chipDefs = ['인도에 차가 올라와 있어요', '골목에 쓰레기가 쌓여 있어요', '전봇대에 전단지가 덕지덕지 붙어 있어요', '아파트 주차장에 이중주차가 돼 있어요'];
+    const mine = [
+      { type: '불법주정차 (인도)', place: '마포구 서교동 · 11월 14일', status: '접수 완료', g: '접수 완료', to: '안전신문고 > 불법주정차', no: '입력 안 함' },
+      { type: '쓰레기 무단투기', place: '마포구 서교동 · 11월 14일', status: '처리 완료 · 수용', g: '처리 완료', to: '안전신문고 > 생활불편', no: 'SPP-2611-014273' },
+      { type: '불법 광고물', place: '마포구 합정동 · 11월 12일', status: '준비 중 · 증거 1/3', g: '준비 중', cont: true, to: '안전신문고 > 생활불편', no: '접수 전' }
+    ];
+    const sStyle = g => g === '처리 완료' ? ['#e8f4ec', '#1f7a45'] : g === '준비 중' ? ['#fdf1e0', '#9a5200'] : ['#eef0f3', sub];
+    const arts = [
+      { title: '횡단보도 위 주차, 사진 2장으로 과태료 부과까지', type: '불법주정차', cat: '불법주정차', result: '수용', gu: '마포구', when: '2026년 10월', likes: 24, photo: '횡단보도 위 차량 (번호판 가림)',
+        sec: ['출근길 횡단보도 위에 승용차가 걸쳐 서 있어 유모차가 차도로 돌아가야 했어요.', '차량 뒤쪽에서 번호판과 횡단보도 선이 함께 보이게 1장, 같은 자리에서 1분 뒤에 1장 더 찍었어요.', '안전신문고 앱의 불법주정차 메뉴에서 횡단보도를 고르고 앱 카메라로 바로 촬영해 제출했어요.', '수용됐고, 과태료 부과 예정이라는 답변을 6일 뒤에 받았어요.', '1분을 기다리는 동안 자리를 옮기지 마세요. 두 장의 구도가 같아야 해요.'] },
+      { title: '처음엔 반려됐어요. 옆모습 사진이 문제였습니다', type: '불법주정차', cat: '불법주정차', result: '불수용 → 재신고 수용', gu: '성동구', when: '2026년 9월', likes: 41, photo: '인도 위 차량 (번호판 가림)',
+        sec: ['인도 위에 차가 올라와 있어서 보행자가 차도로 내려가야 했어요.', '처음에는 앞에서 1장, 옆에서 1장을 찍었어요. 두 번째에는 뒤쪽 같은 자리에서 1분 간격으로 2장을 찍었어요.', '안전신문고 앱의 불법주정차 메뉴에서 인도를 고르고 제출했어요.', '첫 신고는 사진 요건 미달로 불수용됐고, 다음 날 다시 신고해 5일 뒤 수용됐어요.', '방향이 다른 사진 2장은 인정되지 않아요. 같은 위치, 같은 방향으로 찍으세요.'] },
+      { title: '전단지 신고, 전화번호 사진이 핵심이었어요', type: '불법 광고물', cat: '광고물', result: '수용', gu: '관악구', when: '2026년 10월', likes: 12, photo: '전봇대 전단지 (전화번호 가림)',
+        sec: ['집 앞 전봇대에 대출 전단지가 여러 장 붙어 있었어요.', '전체 사진, 전화번호와 상호가 보이는 근접 사진, 부착 위치가 보이는 원거리 사진 3장을 준비했어요.', '안전신문고 생활불편 신고에서 불법 광고물을 골라 사진 3장과 함께 접수했어요.', '수용됐고, 4일 뒤 철거됐다는 답변을 받았어요.', '전화번호가 또렷하게 찍힌 근접 사진이 있어야 광고주를 확인할 수 있어요.'] }
+    ];
+    const heads = ['어떤 상황이었나', '어떤 사진을 준비했나', '어디에 어떻게 접수했나', '결과와 걸린 시간', '다음 사람을 위한 팁'];
+    const art = arts[s.art], helped = !!s.helped[s.art];
+    const chip = (label, on, onClick) => ({ label, onClick, bg: on ? ink : '#fff', color: on ? '#fff' : ink, border: on ? ink : '#c9ced6' });
+    const tab = s.view === 'mine' || s.view === 'detail' ? 1 : s.view === 'cases' || s.view === 'article' ? 2 : s.view === 'share' ? (s.shareFrom === 'detail' ? 1 : 0) : 0;
+    const slotOk = s.p >= 5 && !(s.p === 5 && s.busy);
+    const detail = mine[s.item];
+    return {
+      devW: 390, devH: 844, scrollRef: this.scrollRef,
+      isHome: s.view === 'home', isChat: chat, isDone: s.view === 'done', isMine: s.view === 'mine', isDetail: s.view === 'detail', isCases: s.view === 'cases', isArticle: s.view === 'article', isShare: s.view === 'share',
+      isTimer: s.timer, showTabs: !chat, hasToast: !!s.toast, toast: s.toast,
+      hasResume: !(this.props.emptyHistory ?? false), fromCase: s.fromCase, hasPhoto: s.hasPhoto, text: s.text,
+      onText: e => this.setState({ text: e.target.value }), togglePhoto: () => this.setState(x => ({ hasPhoto: !x.hasPhoto })),
+      sendBg: s.text.trim() || s.hasPhoto ? ink : '#b4bac4', send: this.send,
+      chips: chipDefs.map(label => ({ label, onClick: set({ text: label, hasPhoto: true }) })),
+      goHome: () => { this.clear(); this.setState({ view: 'home', timer: false }); }, goMine: set({ view: 'mine' }), goCases: set({ view: 'cases' }),
+      countLabel: A && s.p >= 3 ? ((s.p >= 8 && n === 2 ? 2 : 1) + '/' + n + '건') : '',
+      stages: ['상황 입력', '항목 선택', '증거 준비', '접수 안내', '완료'].map((label, i) => ({ label, bar: i <= stage ? ink : line, color: i === stage ? ink : sub, weight: i === stage ? 700 : 400 })),
+      sent: s.sent, photoLabel: A ? '인도 위 차량 + 전봇대 아래 쓰레기' : '아파트 지하주차장 이중주차',
+      analyzing: chat && s.p === 1, phaseText: s.phase ? '신고할 수 있는 항목을 찾는 중' : '무엇이 찍혔는지 확인하는 중',
+      showBResult: !A && s.p >= 2,
+      showS3: A && s.p >= 2, s3Active: s.p === 2,
+      togglePark: () => s.p === 2 && this.setState({ park: !s.park }), toggleTrash: () => s.p === 2 && this.setState({ trash: !s.trash }),
+      parkBox: s.park ? ink : '#fff', trashBox: s.trash ? ink : '#fff',
+      whyPark: set({ whyPark: !s.whyPark }), whyTrash: set({ whyTrash: !s.whyTrash }), whyParkOpen: s.whyPark, whyTrashOpen: s.whyTrash,
+      prepLabel: n ? n + '건 신고 준비하기' : '항목을 선택해 주세요', prepBg: n ? ink : '#b4bac4',
+      startPrep: () => n && this.setState({ p: s.trash ? 3 : 8 }),
+      showTrash: A && s.trash && s.p >= 3, s4Active: s.p === 3,
+      slot2Border: slotOk ? '#1f7a45' : '#8b93a0', slot2Bg: slotOk ? '#1f7a45' : '#fff', slot2Mark: slotOk ? '✓' : '', slot2Color: slotOk ? '#1f7a45' : sub, slot2Note: slotOk ? '새로 찍은 사진으로 충분해요' : '아직 없어요',
+      shoot1: () => this.step(4), shoot2: () => this.step(5),
+      showShot1: A && s.trash && s.p >= 4, checking: A && chk && s.busy,
+      showBad: A && s.trash && s.p >= 4 && !(s.p === 4 && s.busy), badActive: s.p === 4 && !s.busy,
+      showShot2: A && s.trash && s.p >= 5, showGood: A && s.trash && s.p >= 5 && !(s.p === 5 && s.busy), goodActive: s.p === 5 && !s.busy,
+      startS7: set({ p: 6, s7: 0 }),
+      showS7: A && s.p === 6, s7: { pre: cur.pre || '', b: cur.b || '', post: cur.post || '', sub: cur.sub || '', btn: cur.btn },
+      s7Num: s.s7 + 1, s7Dots: steps.map((_, i) => ({ bg: i <= s.s7 ? ink : line })), s7HasSub: !!cur.sub, s7Photos: s.s7 === 3, s7Draft: s.s7 === 5, s7Num7: s.s7 === 6, s7CanBack: s.s7 > 0,
+      draftText: drafts[s.draft], draftShort: set({ draft: s.draft === 1 ? 0 : 1 }), draftPolite: set({ draft: s.draft === 2 ? 0 : 2 }),
+      shortBorder: s.draft === 1 ? ink : '#c9ced6', politeBorder: s.draft === 2 ? ink : '#c9ced6',
+      receipt: s.receipt, onReceipt: e => this.setState({ receipt: e.target.value }),
+      s7Back: set({ s7: s.s7 - 1 }),
+      s7Next: () => {
+        if (cur.msg) this.toast(cur.msg);
+        if (s.s7 === 5) { try { navigator.clipboard.writeText(drafts[s.draft]).catch(() => {}); } catch (e) {} }
+        if (s.s7 < 6) this.setState({ s7: s.s7 + 1 }); else if (s.park) this.setState({ p: 7 }); else this.finish();
+      },
+      showTrashDone: A && s.trash && s.p >= 7 && chat, showS8: s.p === 7,
+      later: () => { this.setState({ view: 'mine' }); this.toast('불법주정차는 준비 중으로 남겨 뒀어요'); }, startPark: set({ p: 8 }),
+      showPark: A && s.park && s.p >= 8, parkActive: s.p === 8, startTimer: this.startTimer,
+      showSubmit: A && s.p === 9, finish: this.finish,
+      ringPct: s.sec / 60 * 100, clock: Math.floor(s.sec / 60) + ':' + String(s.sec % 60).padStart(2, '0'),
+      timerRunning: !s.timerDone, timerDone: s.timerDone,
+      cancelTimer: () => { clearInterval(this.iv); this.setState({ timer: false }); },
+      timerShot: set({ timer: false, timerDone: false, p: 9 }),
+      doneTitle: n + '건 접수를 마쳤어요',
+      doneItems: [s.trash && { type: '쓰레기 무단투기', kind: '민원', to: '안전신문고 > 생활불편', no: s.receipt || '입력 안 함', bBg: '#fff', bColor: ink }, s.park && { type: '불법주정차 (인도)', kind: '신고', to: '안전신문고 > 불법주정차', no: '입력 안 함', bBg: ink, bColor: '#fff' }].filter(Boolean).map((d, i) => ({ ...d, sep: i ? '1px solid ' + line : 'none' })),
+      shareFromDone: set({ view: 'share', shareFrom: 'done', agree: false }), shareFromDetail: set({ view: 'share', shareFrom: 'detail', agree: false }),
+      filters: ['전체', '준비 중', '접수 완료', '처리 완료'].map(f => chip(f, s.filter === f, set({ filter: f }))),
+      mineEmpty: this.props.emptyHistory ?? false,
+      mineItems: (this.props.emptyHistory ?? false) ? [] : mine.map((m, i) => ({ ...m, i })).filter(m => s.filter === '전체' || m.g === s.filter).map(m => ({ ...m, cont: !!m.cont, sBg: sStyle(m.g)[0], sColor: sStyle(m.g)[1], onClick: set({ view: 'detail', item: m.i }) })),
+      detail,
+      timeline: [['상황 입력', '11월 14일 오후 2:02'], ['증거 준비', '사진 2장 확인'], ['접수 완료', detail.to], ['처리 결과', s.result]].map(([label, note], i) => ({ label, note, dot: i < 3 || s.result !== '아직 모름' ? ink : '#fff', line: i < 3 ? ink : 'transparent' })),
+      results: ['수용', '불수용', '아직 모름'].map(r => chip(r, s.result === r, set({ result: r }))),
+      rejected: s.result === '불수용', reason: s.reason, onReason: e => this.setState({ reason: e.target.value }),
+      cfilters: ['전체', '불법주정차', '쓰레기', '광고물', '시설물'].map(f => chip(f, s.cfilter === f, set({ cfilter: f }))),
+      articles: arts.map((a, i) => ({ ...a, i })).filter(a => s.cfilter === '전체' || a.cat === s.cfilter).map(a => ({ ...a, likes: a.likes + (s.helped[a.i] ? 1 : 0), onClick: set({ view: 'article', art: a.i }) })),
+      art, artSections: art.sec.map((body, i) => ({ h: (i + 1) + '. ' + heads[i], body, photo: i === 1 })),
+      artLikes: art.likes + (helped ? 1 : 0), helpBg: helped ? ink : '#fff', helpColor: helped ? '#fff' : ink, helpBorder: helped ? ink : '#c9ced6',
+      toggleHelp: () => this.setState({ helped: { ...s.helped, [s.art]: !helped } }),
+      startFromCase: set({ ...this.base(), helped: s.helped, fromCase: true, text: '인도에 차가 올라와 있어요', hasPhoto: true }),
+      agreeBox: s.agree ? ink : '#fff', toggleAgree: set({ agree: !s.agree }), shareBg: s.agree ? ink : '#b4bac4',
+      cancelShare: set({ view: s.shareFrom === 'detail' ? 'detail' : 'done' }),
+      doShare: () => { if (!s.agree) return; this.setState({ view: 'cases' }); this.toast('사례로 공유했어요'); },
+      tabs: [['신고하기', () => { this.clear(); this.setState({ view: 'home', timer: false }); }], ['내 신고', set({ view: 'mine' })], ['사례', set({ view: 'cases' })]].map(([label, onClick], i) => ({ label, onClick, bar: i === tab ? ink : 'transparent', color: i === tab ? ink : sub, weight: i === tab ? 700 : 500 }))
+    };
+  }
+}
+</script>
+</body>
+</html>

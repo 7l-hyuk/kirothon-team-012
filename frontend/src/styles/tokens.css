@@ -1,0 +1,41 @@
+/* 신고메이트 토큰 — 홈(S0) 화면의 남색 전통문양 톤.
+   주색 남색, 글자 먹남색, 연한 청회색 바탕, 흰 카드. 상태 색(초록·주황·회색)은 상태 표시에만 씁니다. */
+:root {
+  --navy: #25488a;       /* 주 버튼, 선택, 아이콘 */
+  --navy-2: #1f3d78;     /* 주 버튼 hover */
+  --navy-soft: #e2e7f3;  /* 아이콘 원, 약한 버튼 */
+  --navy-line: #b9c4dc;  /* 연한 바탕 위 문양 선 */
+
+  --ink: #1b2240;        /* 본문 글자 */
+  --ink-2: #2b3560;
+  --sub: #5d6480;        /* 보조 글자 */
+  --line: #dfe4ef;       /* 구분선 */
+  --line-strong: #c6cfe2;
+  --bg: #eef1f8;         /* 화면 바탕 */
+  --bg-2: #e6eaf4;       /* 안내 박스, 눌린 칩 */
+  --card: #ffffff;
+  --card-2: #f6f8fc;
+  --chat-bg: #eef1f8;
+
+  /* 예전 금색 포인트 자리. 남색으로 통일 */
+  --gold: var(--navy);
+  --gold-soft: var(--navy-soft);
+  --gold-ink: var(--navy);
+
+  --ok: #1f7a45;  --ok-bg: #e6f2ea;
+  --warn: #c26a00; --warn-ink: #9a5200; --warn-bg: #fdf1e0;
+  --mute: #8b93a0;
+  --disabled: #b3bccf;
+
+  --shadow: 0 6px 18px rgba(37, 72, 138, .08);
+  --shadow-strong: 0 8px 22px rgba(37, 72, 138, .14);
+
+  --r: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-pill: 22px;
+
+  --font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+  color-scheme: light;
+}
