@@ -11,7 +11,7 @@ from app.config import get_settings
 from app.main import app
 from app.models import AiUsage, Case, CaseDraft, CaseLike, CasePhoto, Photo, Report
 from app.schemas.ai_outputs import CaseDraftOutput, ReviewOutput
-from app.seed import load_seed_cases, seed_cases
+from app.seed import SEED_DEVICE_ID, load_seed_cases, seed_case_photos, seed_cases
 from app.services.cases import HEADINGS, scrub
 from app.timeutil import now_kst
 from tests.conftest import JPEG, count_rows
@@ -69,6 +69,11 @@ def ai_report(client, headers, ai, **over) -> str:
 def seed() -> int:
     with Session(db.get_engine()) as session:
         return seed_cases(session)
+
+
+def seed_case_photos_run(images_dir=None) -> int:
+    with Session(db.get_engine()) as session:
+        return seed_case_photos(session) if images_dir is None else seed_case_photos(session, images_dir)
 
 
 def usage(device_id: str) -> int:
@@ -220,7 +225,10 @@ def test_seed_inserts_three_examples_once(client, headers):
         "전단지 신고, 전화번호 사진이 핵심이었어요",
         "처음엔 반려됐어요. 옆모습 사진이 문제였습니다",
     ]
-    assert all(i["cover_url"] is None for i in items)
+    assert all(i["cover_url"] is None for i in items)  # 사진 붙이기 전
+    assert seed_case_photos_run() == 3
+    items = client.get("/api/cases", headers=headers).json()["items"]
+    assert all(i["cover_url"] for i in items)
     by_title = {i["title"]: i for i in items}
     rejected = by_title["처음엔 반려됐어요. 옆모습 사진이 문제였습니다"]
     assert (rejected["type_label"], rejected["result_label"], rejected["district"]) == (
@@ -232,7 +240,9 @@ def test_seed_inserts_three_examples_once(client, headers):
     detail = client.get(f"/api/cases/{rejected['id']}", headers=headers).json()
     assert detail["period"] == "2026년 9월"
     assert [s["heading"] for s in detail["sections"]] == list(HEADINGS)
-    assert all(s["photos"] == [] for s in detail["sections"])
+    photo_sections = {s["heading"]: s["photos"] for s in detail["sections"]}
+    assert len(photo_sections["어떤 사진을 준비했나"]) == 1
+    assert all(p == [] for h, p in photo_sections.items() if h != "어떤 사진을 준비했나")
     assert detail["is_mine"] is False and detail["liked_by_me"] is False
 
 
@@ -249,9 +259,37 @@ def test_seed_file_is_valid_and_examples_cannot_be_removed(client, headers):
 
 def test_startup_seeds_examples_when_cases_are_empty(headers):
     with TestClient(app) as c:  # lifespan이 돌아요.
-        assert len(c.get("/api/cases", headers=headers).json()["items"]) == 3
+        items = c.get("/api/cases", headers=headers).json()["items"]
+        assert len(items) == 3
+        assert all(i["cover_url"] for i in items)  # 시작 때 사진도 붙어요.
     with TestClient(app) as c:  # 다시 시작해도 늘지 않아요.
         assert len(c.get("/api/cases", headers=headers).json()["items"]) == 3
+    assert count_rows(Case) == 3
+    assert count_rows(CasePhoto) == 3
+
+
+def test_seed_photos_attach_to_existing_cases_once(client, headers):
+    seed()  # 사진 없이 먼저 들어가 있던 예시 사례
+    assert count_rows(CasePhoto) == 0
+    assert seed_case_photos_run() == 3
+    assert seed_case_photos_run() == 0  # 멱등
+    assert count_rows(CasePhoto) == 3
+    with Session(db.get_engine()) as session:
+        per_case = {}
+        for cp in session.exec(select(CasePhoto)).all():
+            per_case[cp.case_id] = per_case.get(cp.case_id, 0) + 1
+            assert cp.position == 0
+            photo = session.get(Photo, cp.photo_id)
+            assert photo.device_id == SEED_DEVICE_ID
+            assert photo.analysis_id is None and photo.report_id is None and photo.scene_id is None
+            assert re.fullmatch(r"photos/\d{4}/\d{2}/[0-9a-f-]{36}\.jpg", photo.s3_key)
+        assert set(per_case.values()) == {1} and len(per_case) == 3
+
+
+def test_seed_photos_skip_missing_file(client, headers, tmp_path):
+    seed()
+    assert seed_case_photos_run(tmp_path / "no-such-dir") == 0  # 앱 시작을 막지 않아요.
+    assert count_rows(CasePhoto) == 0
     assert count_rows(Case) == 3
 
 
