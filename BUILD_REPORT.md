@@ -19,11 +19,11 @@ Spec 5개의 작업 목록(`tasks.md`)에는 완료 항목 136개와 남은 항�
 | 설계 | Steering | 기술 스택, Claude 호출 규칙(구조화 출력, 금지 파라미터, 거절 처리), 환경변수, 배포 구성을 `tech.md`에, 폴더 구조와 API 경로 표, DB 테이블 초안, 신고 절차 JSON 스키마를 `structure.md`에, 브랜치와 PR 규칙을 `git.md`에 정했습니다 | `.kiro/steering/tech.md`, `structure.md`, `git.md` |
 | 설계 | Spec (design) | 기능별 구조를 설계했습니다. 가짜 응답과 실제 호출을 가려 쓰는 방식, AI는 판정만 하고 절차는 서버가 데이터로 조립하는 구조, 사진 저장소 인터페이스(S3와 로컬), 미리보기 글을 저장해 공유 글과 일치시키는 방식 등입니다 | `.kiro/specs/*/design.md` |
 | 구현 | Spec (tasks) 실행 | 작업 목록대로 Kiro가 코드를 작성했습니다. 백엔드 뼈대와 가짜 API, Claude 연동 4개 기능(분석, 증거 검수, 사전 점검, 문구 대필), 4개 유형의 절차 데이터, PostgreSQL과 S3 저장, 사례 공유 API와 예시 사례입니다 | `backend/app/`, `backend/data/`, `Dockerfile`, `docker-compose.yml` |
-| 구현 | Spec (tasks) 실행 | 프론트 화면의 톤을 통일하고 이동 흐름을 다시 짰습니다 | `.kiro/specs/frontend-redesign/`, `frontend/src/` |
+| 구현 | Spec (tasks) 실행 | 프론트 화면을 다시 그렸습니다. 디자인 토큰과 공통 CSS, 공통 부품, 홈을 유일한 시작점으로 하는 이동 흐름, 화면별 적용, 피드백 반영 순서로 진행했습니다 | `.kiro/specs/frontend-redesign/`, `frontend/src/styles/`, `frontend/src/components/`, `frontend/src/screens/` |
 | 검증 | Spec (tasks) + 테스트 작성 | 인수 조건을 검증하는 백엔드 테스트 143개를 Kiro가 작성했습니다. SQLite 메모리 DB와 가짜 Claude 클라이언트로 돌아 외부 접속 없이 실행됩니다 | `backend/tests/` |
 | 검증 | 코드 리뷰 반영 | 구현 뒤 실제 PostgreSQL, S3, Claude 호출로 동작을 확인하고, 찾은 문제를 Kiro에 전달해 수정하게 했습니다. 수정 내용은 각 Spec의 `tasks.md` 끝 "코드 리뷰 반영" 항목에 기록돼 있습니다 | `.kiro/specs/*/tasks.md` |
 | 기타 | Hooks | `backend/`의 Python 파일을 저장하면 `pytest`를 돌리고, 라우터나 스키마를 저장하면 `docs/api-spec.md`와 어긋난 곳을 찾고, 프론트의 API 호출 코드를 저장하면 명세와 비교합니다 | `.kiro/hooks/` |
-| 기타 | Steering 갱신 | 결정이 바뀔 때마다 Steering을 먼저 고쳤습니다. SQLite에서 PostgreSQL로, 디스크 저장에서 S3로, 직접 병합에서 PR 병합으로 바꾼 것이 모두 Steering에 반영돼 있습니다 | `.kiro/steering/` |
+| 기타 | Steering 갱신 | 결정이 바뀔 때마다 Steering을 먼저 고쳤습니다. SQLite에서 PostgreSQL로, 디스크 저장에서 S3로, 직접 병합에서 PR 병합으로 바꾼 것이 모두 Steering에 반영돼 있습니다. 프론트의 화면 흐름을 다시 짤 때도 `product.md`의 화면 구조(S0~S14)를 함께 고쳤습니다 | `.kiro/steering/` |
 | 기타 | Kiro CLI | 백엔드 작업은 Kiro CLI(`kiro-cli chat`)로 진행했습니다. 지시문에 Steering과 `docs/api-spec.md`를 먼저 읽게 하고, Spec 작성 → 구현 → 작업 목록 갱신 순서를 지키게 했습니다 | - |
 
 ### Spec별 작업
@@ -34,7 +34,7 @@ Spec 5개의 작업 목록(`tasks.md`)에는 완료 항목 136개와 남은 항�
 | `ai-assist` | Claude로 분석·증거 검수·사전 점검·문구 대필, 절차 데이터 4개, 하루 호출 상한, 사진 축소 | 29 |
 | `persistence` | 분석·신고 건·사진·호출 수를 PostgreSQL에, 사진 파일을 S3에 저장 | 24 |
 | `cases` | 사례 목록·상세·공유·도움돼요, 미리보기 글 생성, 예시 사례 3건 | 21 |
-| `frontend-redesign` | 화면 톤 통일, 홈을 유일한 시작점으로 하는 이동 흐름 재설계 | 38 |
+| `frontend-redesign` | 디자인 토큰과 공통 CSS, 공통 부품, 화면 크기 대응, 홈(S0)을 유일한 시작점으로 하는 이동 흐름, 전 화면 적용 | 38 |
 
 ### Kiro와 다른 도구의 분담
 
@@ -49,7 +49,9 @@ Kiro만으로 만든 것은 아닙니다. 사실대로 구분해 적습니다.
 | 화면 목업 | Claude Design |
 | 방향 결정, PR 병합 | 팀원 |
 
-프론트의 API 연동 PR(#6, #7, #9, #11, #12, #14)에서 Kiro를 어떻게 썼는지는 프론트 담당자가 이 문서에 추가합니다.
+### Spec 없이 진행한 작업
+
+프론트의 API 연동(PR #6, #7, #9, #11, #12, #14)은 별도 Spec을 만들지 않았습니다. `frontend-redesign` Spec의 요구사항에 "연동은 별도 Spec에서 한다"고 적었지만, 실제로는 `docs/api-spec.md`와 Steering을 기준으로 공통 클라이언트 → 분석 → 증거 → 접수 안내 → 신고 조회 → 사례 순서의 PR 여섯 건으로 나눠 진행했습니다. 그래서 이 작업은 `.kiro/specs/`에 기록이 없고, 위 표에도 넣지 않았습니다. 각 PR의 인수인계 절과 `docs/api-spec.md`가 이 작업의 기록입니다.
 
 ## 개발 과정에서 바뀐 점
 
