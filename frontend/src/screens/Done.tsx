@@ -10,12 +10,11 @@ import { Check, Doc, Share } from "../components/icons/Icons";
 const NONE = "입력 안 함";
 
 export function Done() {
-  const { s, n, openShare, toast, toLanding } = useStore();
+  const { s, openShare, toast, toLanding } = useStore();
+  const n = s.finished.length;
   const nav = useNavigate();
-  const items = [
-    s.trash && { type: "쓰레기 무단투기", kind: "민원", to: "안전신문고 > 생활불편", no: s.receipt || NONE },
-    s.park && { type: "불법주정차 (인도)", kind: "신고", to: "안전신문고 > 불법주정차", no: NONE },
-  ].filter(Boolean) as { type: string; kind: string; to: string; no: string }[];
+  // 접수처(to)는 신고 조회 연동(feat/fe-my-reports)에서 GET /api/reports/{id}의 channel로 채운다.
+  const items = s.finished.map((f) => ({ type: f.label, kind: f.category === "report" ? "신고" : "민원", to: "안전신문고", no: f.receipt || NONE }));
 
   const copy = (no: string) => {
     navigator.clipboard?.writeText(no).catch(() => {});
