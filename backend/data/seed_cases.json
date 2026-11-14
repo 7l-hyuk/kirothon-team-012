@@ -1,8 +1,9 @@
 {
-  "_note": "예시 사례. 실제 사용자의 글이 아니라 화면을 채우기 위한 예시예요. 지역은 구 단위, 시기는 월 단위까지만 씁니다. 사진은 없어요.",
+  "_note": "예시 사례. 실제 사용자의 글이 아니라 화면을 채우기 위한 예시예요. 지역은 구 단위, 시기는 월 단위까지만 씁니다. 대표 사진은 backend/data/seed_images/의 파일이고 photo 필드가 파일 이름이에요.",
   "cases": [
     {
       "key": "seed-crosswalk-parking",
+      "photo": "crosswalk-parking.jpg",
       "type_id": "illegal_parking",
       "title": "횡단보도 위 주차, 사진 2장으로 과태료 부과까지",
       "result_label": "수용",
@@ -35,6 +36,7 @@
     },
     {
       "key": "seed-rejected-side-photo",
+      "photo": "sidewalk-parking.jpg",
       "type_id": "illegal_parking",
       "title": "처음엔 반려됐어요. 옆모습 사진이 문제였습니다",
       "result_label": "불수용 → 재신고 수용",
@@ -67,6 +69,7 @@
     },
     {
       "key": "seed-flyer-phone-number",
+      "photo": "street.jpg",
       "type_id": "illegal_ad",
       "title": "전단지 신고, 전화번호 사진이 핵심이었어요",
       "result_label": "수용",
