@@ -45,6 +45,28 @@ def validation_error(detail: str) -> ApiError:
     return ApiError(422, ErrorCode.VALIDATION_ERROR, detail)
 
 
+def unsupported_media() -> ApiError:
+    return ApiError(415, ErrorCode.UNSUPPORTED_MEDIA, "JPEG, PNG, WebP 사진만 올릴 수 있어요.")
+
+
+def photo_too_large() -> ApiError:
+    return ApiError(413, ErrorCode.PHOTO_TOO_LARGE, "사진이 너무 커요. 10MB 이하로 올려 주세요.")
+
+
+def ai_refused() -> ApiError:
+    return ApiError(422, ErrorCode.AI_REFUSED, "AI가 이번 요청에는 답하지 못했어요. 다시 시도해 주세요.")
+
+
+def ai_unavailable() -> ApiError:
+    return ApiError(502, ErrorCode.AI_UNAVAILABLE, "AI가 지금 답하지 못했어요. 잠시 뒤 다시 시도해 주세요.")
+
+
+def daily_limit_exceeded() -> ApiError:
+    return ApiError(
+        429, ErrorCode.DAILY_LIMIT_EXCEEDED, "오늘 쓸 수 있는 AI 분석 횟수를 모두 썼어요. 내일 다시 이용해 주세요."
+    )
+
+
 def _body(detail: str, code: str) -> dict[str, str]:
     return {"detail": detail, "code": code}
 

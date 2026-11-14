@@ -85,6 +85,7 @@
 | PUT | `/api/cases/{id}/like` | 도움돼요 누르기 | S13 |
 | DELETE | `/api/cases/{id}/like` | 도움돼요 취소 | S13 |
 | GET | `/api/procedures/{type_id}` | 신고 절차 데이터 조회 | S4, S7 |
+| GET | `/api/photos/{photo_id}/file` | 업로드 사진 조회 (임시, S3 도입 전까지. 9장 참고) | - |
 | GET | `/api/health` | 서버 상태 확인 | - |
 
 ---
@@ -401,7 +402,7 @@ S4의 증거 체크리스트입니다.
 { "photo_id": "a1b2..." }
 ```
 
-`photo_id`를 생략하면 분석 때 올린 첫 사진을 씁니다.
+`photo_id`를 생략하면 분석에서 불법주정차가 보인다고 판단한 사진을 쓰고, 그런 사진이 없으면 분석 때 올린 첫 사진을 씁니다. 사진이 하나도 없으면 `422`입니다.
 
 **응답** `200`
 
@@ -684,8 +685,37 @@ S4의 증거 체크리스트입니다.
 ### GET `/api/health`
 
 ```json
-{ "status": "ok" }
+{ "status": "ok", "db": "ok", "mock": false }
 ```
+
+`mock`은 `ANTHROPIC_API_KEY`가 비어 있으면 `true`입니다.
+
+### 가짜(mock) 모드와 `X-Mock`
+
+- `ANTHROPIC_API_KEY`가 비어 있으면 서버는 AI를 부르지 않고 고정된 가짜 응답으로 동작합니다(로컬 개발과 테스트용). 이때 모든 `/api` 응답에 `X-Mock: true` 헤더가 붙습니다.
+- 키가 있으면 위 AI 엔드포인트가 Claude를 호출하고 `X-Mock` 헤더는 붙지 않습니다.
+- 가짜 모드에서는 하루 호출 수를 세지 않습니다.
+- 요청·응답 형태는 두 모드가 같습니다. 차이는 값뿐입니다.
+
+| 엔드포인트 | 가짜 모드 | 실제 모드 |
+|---|---|---|
+| `POST /api/analyses` | "아파트"·"주차장"이 글에 있으면 신고 불가, 아니면 불법주정차 + 쓰레기 2건 | Claude가 사진·글을 분석. `subtitle`, `label`, 접수처는 절차 데이터로 서버가 조립 |
+| `POST /api/reports/{id}/photos` | 첫 업로드는 불충분, 두 번째부터 충분 | Claude가 장면별 통과 기준으로 검수. `retake_tip`이 비면 절차 데이터 값으로 채움 |
+| `POST /api/reports/{id}/rehearsals` | 고정 결과 | Claude가 구역·번호판·배경을 판정. `capture_guide`는 절차 데이터와 `zone`으로 조립 |
+| `POST /api/reports/{id}/drafts` | 고정 문구 | Claude가 합니다체로 작성. 위치를 모르면 `[위치를 적어 주세요]` 포함 |
+| `GET /api/reports/{id}/guide` | 고정 7단계 | `backend/data/*.json`의 `steps`로 조립 |
+
+### AI 호출의 오류
+
+| 상황 | 응답 |
+|---|---|
+| 기기의 오늘 호출 수가 `AI_DAILY_LIMIT`에 이름 | `429 daily_limit_exceeded` (실패한 호출도 셉니다) |
+| `stop_reason`이 `refusal` | `422 ai_refused` |
+| 시간 초과(50초), 연결 오류, AI 쪽 5xx·429, 인증 오류, 출력 검증 실패 | `502 ai_unavailable` |
+
+### 사전 점검의 `zone`이 금지구역이 아닐 때
+
+`zone`은 `none`이고 `checks[0].status`는 `insufficient`입니다. 이 경우 서버는 증거 단계를 완료 처리하지 않습니다(그 외에는 점검을 본 것만으로 완료 처리).
 
 ### 사진 파일
 
@@ -695,6 +725,13 @@ S4의 증거 체크리스트입니다.
 - 내 신고의 사진은 `X-Device-Id`가 맞는 요청에만 `url`을 내려 줍니다. 공유하지 않은 사진은 다른 기기가 주소를 받을 수 없습니다.
 - 사례로 공유한 사진은 누구에게나 `url`을 내려 주며, 원본 그대로 공개됩니다.
 - `S3_BUCKET`이 없는 로컬 개발 환경에서는 백엔드가 디스크에 저장하고 자체 경로를 `url`로 돌려줍니다.
+
+**임시 방식 (S3로 바꾸기 전까지)**
+
+- 백엔드가 받은 사진을 긴 변 1568px 이하 JPEG로 줄여 프로세스 메모리에 두고, 응답의 `url`은 `GET /api/photos/{photo_id}/file`입니다. 재시작하면 사라집니다.
+- 이 경로는 `<img>`가 헤더를 보내지 못해 `X-Device-Id`를 검사하지 않습니다. 추측할 수 없는 UUID가 접근 열쇠입니다. 응답은 `image/jpeg`이고 없는 ID는 `404 not_found`입니다.
+- `ANTHROPIC_API_KEY`가 없는 가짜 모드에서는 사진을 저장하지 않고 `/api/mock/placeholder.svg`를 돌려줍니다.
+- 업로드 검사: JPEG, PNG, WebP가 아니거나 이미지로 열 수 없으면 `415`, 10MB를 넘으면 `413`입니다.
 
 ### 배포 환경에서의 제약
 

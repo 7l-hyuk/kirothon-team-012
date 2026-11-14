@@ -5,11 +5,16 @@ from uuid import uuid4
 
 from fastapi import UploadFile
 
-from app.errors import ApiError, ErrorCode, invalid_state, not_found, validation_error
+from app.config import is_mock
+from app.errors import invalid_state, not_found, validation_error
 from app.mock import fixtures
-from app.mock.catalog import CATALOG, CHANNEL_NAME, WEB_URL, SceneDef, TypeDef
+from app.mock.catalog import WEB_URL, SceneDef, TypeDef
 from app.mock.fixtures import PLACEHOLDER_URL
-from app.mock.store import AnalysisRecord, ReportRecord, SceneState, store
+from app.services import guide as procedure_guide
+from app.services import photos as photo_service
+from app.services import procedures
+from app.services.store import AnalysisRecord, ReportRecord, SceneState, store
+from app.services.typeinfo import channel_info, type_def
 from app.schemas.analyses import (
     AnalysisResponse,
     CreatedReport,
@@ -40,8 +45,8 @@ from app.schemas.reports import (
 )
 
 KST = timezone(timedelta(hours=9))
-ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp"}
-MAX_PHOTO_BYTES = 10 * 1024 * 1024
+ALLOWED_MIME = photo_service.ALLOWED_MIME
+MAX_PHOTO_BYTES = photo_service.MAX_PHOTO_BYTES
 MAX_PHOTOS_PER_ANALYSIS = 4
 RESULT_LABEL = {"accepted": "수용", "rejected": "불수용", "unknown": "아직 몰라요"}
 
@@ -58,13 +63,9 @@ def _placeholder() -> PhotoRef:
     return PhotoRef(id=new_id(), url=PLACEHOLDER_URL)
 
 
-# ---------- 업로드 검사 (파일은 저장하지 않고 버립니다) ----------
-async def check_upload(file: UploadFile) -> None:
-    if file.content_type not in ALLOWED_MIME:
-        raise ApiError(415, ErrorCode.UNSUPPORTED_MEDIA, "JPEG, PNG, WebP 사진만 올릴 수 있어요.")
-    data = await file.read(MAX_PHOTO_BYTES + 1)
-    if len(data) > MAX_PHOTO_BYTES:
-        raise ApiError(413, ErrorCode.PHOTO_TOO_LARGE, "사진이 너무 커요. 10MB 이하로 올려 주세요.")
+# ---------- 업로드 검사 (가짜 모드는 파일을 저장하지 않고 버립니다) ----------
+def check_upload(file: UploadFile) -> None:
+    photo_service.read_upload(file)
 
 
 # ---------- 소유권 확인 ----------
@@ -92,7 +93,8 @@ def create_analysis(device_id: str, text: str | None, photo_count: int) -> Analy
 
 
 def create_reports(device_id: str, analysis_id: str, type_ids: list[str]) -> CreateReportsResponse:
-    analysis = get_analysis_record(device_id, analysis_id).response
+    analysis_rec = get_analysis_record(device_id, analysis_id)
+    analysis = analysis_rec.response
     available = {item.type_id: item for item in analysis.items}
     if len(set(type_ids)) != len(type_ids):
         raise validation_error("같은 항목이 두 번 들어 있어요.")
@@ -106,13 +108,21 @@ def create_reports(device_id: str, analysis_id: str, type_ids: list[str]) -> Cre
     created: list[CreatedReport] = []
     for seq, type_id in enumerate(type_ids, start=1):
         item = available[type_id]
+        # 분석 사진으로 이미 충족한 장면은 AI를 다시 부르지 않고 그대로 반영합니다.
+        matched = {m.scene_id: m for m in analysis_rec.scene_matches.get(type_id, [])}
         scenes: dict[str, SceneState] = {}
-        for scene in CATALOG[type_id].scenes:
+        for scene in type_def(type_id).scenes:
             state = SceneState()
-            if scene.prefill_from_analysis and first_photo:  # 분석 사진 재사용 (AI 재호출 없음)
-                state.photo = first_photo
-                state.review = SceneReview(status="sufficient", message=scene.sufficient_message)
+            if is_mock():
+                if scene.prefill_from_analysis and first_photo:  # 가짜 모드: 분석 사진 재사용
+                    state.photo = first_photo
+                    state.review = SceneReview(status="sufficient", message=scene.sufficient_message)
+            elif scene.scene_id in matched:
+                m = matched[scene.scene_id]
+                state.photo = PhotoRef(id=m.photo_id, url=photo_service.photo_url(m.photo_id))
+                state.review = SceneReview(status="sufficient", message=m.message)
             scenes[scene.scene_id] = state
+        zone = item.detail.get("zone")
         rec = ReportRecord(
             id=new_id(),
             device_id=device_id,
@@ -125,6 +135,7 @@ def create_reports(device_id: str, analysis_id: str, type_ids: list[str]) -> Cre
             location=analysis.location,
             created_at=created_at,
             scenes=scenes,
+            zone=zone if isinstance(zone, str) else None,
         )
         store.reports[rec.id] = rec
         created.append(CreatedReport(id=rec.id, type_id=type_id, sequence=seq, status="preparing"))
@@ -133,12 +144,15 @@ def create_reports(device_id: str, analysis_id: str, type_ids: list[str]) -> Cre
 
 # ---------- 증거 ----------
 def _scene_defs(rec: ReportRecord) -> tuple[SceneDef, ...]:
-    return CATALOG[rec.type_id].scenes
+    return type_def(rec.type_id).scenes
 
 
 def _summary(rec: ReportRecord) -> EvidenceSummary:
-    required = len(_scene_defs(rec))
-    done = sum(1 for s in rec.scenes.values() if s.review and s.review.status == "sufficient")
+    defs = [d for d in _scene_defs(rec) if d.required]
+    required = len(defs)
+    done = sum(
+        1 for d in defs if (r := rec.scenes[d.scene_id].review) is not None and r.status == "sufficient"
+    )
     return EvidenceSummary(required_count=required, done_count=done, complete=done >= required)
 
 
@@ -159,13 +173,13 @@ def evidence_out(rec: ReportRecord) -> EvidenceOut:
         if remaining
         else f"{rec.label} 사진이 모두 준비됐어요."
     )
-    if not CATALOG[rec.type_id].capture_in_app:
+    if not type_def(rec.type_id).capture_in_app:
         intro = f"{rec.label}은 사전 점검으로 확인해요. 본촬영은 안전신문고 앱에서 해요."
     scenes = [
         EvidenceScene(
             scene_id=d.scene_id,
             label=d.label,
-            required=True,
+            required=d.required,
             photo=rec.scenes[d.scene_id].photo,
             review=rec.scenes[d.scene_id].review,
         )
@@ -175,7 +189,7 @@ def evidence_out(rec: ReportRecord) -> EvidenceOut:
         report_id=rec.id,
         label=rec.label,
         intro=intro,
-        capture_in_app=CATALOG[rec.type_id].capture_in_app,
+        capture_in_app=type_def(rec.type_id).capture_in_app,
         scenes=scenes,
         **summary.model_dump(),
     )
@@ -247,7 +261,7 @@ def _next_report_id(rec: ReportRecord) -> str | None:
 
 
 def report_out(rec: ReportRecord) -> ReportOut:
-    t = CATALOG[rec.type_id]
+    channel_name, _, menu_path = channel_info(rec.type_id, rec.zone)
     s = _summary(rec)
     if rec.status == "resolved":
         result_note = RESULT_LABEL.get(rec.result or "", "")
@@ -259,7 +273,7 @@ def report_out(rec: ReportRecord) -> ReportOut:
         TimelineEntry(
             key="filed",
             label="접수 완료",
-            note=f"{CHANNEL_NAME} > {t.menu_path[0]}",
+            note=f"{channel_name} > {menu_path[0]}",
             done=rec.status != "preparing",
         ),
         TimelineEntry(key="result", label="처리 결과", note=result_note, done=rec.status == "resolved"),
@@ -279,7 +293,7 @@ def report_out(rec: ReportRecord) -> ReportOut:
         evidence_progress=EvidenceProgress(done=s.done_count, required=s.required_count),
         current_step=rec.current_step,
         step_count=STEP_COUNT,
-        channel=ReportChannel(name=CHANNEL_NAME, menu_path=list(t.menu_path)),
+        channel=ReportChannel(name=channel_name, menu_path=menu_path),
         photos=_report_photos(rec),
         draft_text=rec.draft_text,
         receipt_number=rec.receipt_number,
@@ -451,7 +465,8 @@ def _guide_steps(rec: ReportRecord, t: TypeDef) -> list[GuideStep]:
 
 
 def guide_out(rec: ReportRecord) -> GuideOut:
-    t = CATALOG[rec.type_id]
+    t = type_def(rec.type_id)
+    channel_name, web_url, menu_path = channel_info(rec.type_id, rec.zone)
     carry_over: list[CarryOver] = []
     if rec.sequence >= 2:
         carry_over = [
@@ -466,15 +481,26 @@ def guide_out(rec: ReportRecord) -> GuideOut:
                 ),
             ),
         ]
+    if is_mock():
+        steps = _guide_steps(rec, t)
+    else:  # 실제 모드: 제목, 메뉴 경로, 버튼은 절차 데이터에서 그대로 가져옵니다.
+        steps = procedure_guide.build_steps(
+            procedures.get_procedure(rec.type_id),
+            skip_reusable=rec.sequence >= 2,
+            photos=[PhotoRef(id=p.id, url=p.url) for p in _report_photos(rec)],
+            menu_path=menu_path,
+            address=rec.location.address,
+            draft_text=rec.draft_text,
+        )
     return GuideOut(
         report_id=rec.id,
         label=rec.label,
         sequence=rec.sequence,
         total=rec.total,
-        channel=GuideChannel(name=CHANNEL_NAME, web_url=WEB_URL, menu_path=list(t.menu_path)),
+        channel=GuideChannel(name=channel_name, web_url=web_url, menu_path=menu_path),
         current_step=rec.current_step,
         carry_over=carry_over,
-        steps=_guide_steps(rec, t),
+        steps=steps,
     )
 
 
