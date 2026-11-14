@@ -43,7 +43,7 @@ Python을 3.13으로 정한 이유는 psycopg 등 바이너리 휠 호환입니�
 |---|---|---|
 | `ANTHROPIC_API_KEY` | Claude API 키. **필수** | 없음 |
 | `CLAUDE_MODEL` | 모델 ID | `claude-opus-5-5` |
-| `AI_DAILY_LIMIT` | 기기 ID당 하루 AI 호출 상한 | 20 (가정값, 조정 가능) |
+| `AI_DAILY_LIMIT` | 기기 ID당 하루 AI 호출 상한. 호출 수는 DB(`ai_usage`)에 KST 날짜별로 셉니다 | 20 (가정값, 조정 가능) |
 | `DATABASE_URL` | PostgreSQL 접속 주소. 예: `postgresql+psycopg://shingo:<비밀번호>@db:5432/shingomate` | 없음 (로컬 개발은 `localhost`로 접속) |
 | `S3_BUCKET` | 사진 저장 S3 버킷 이름. 설정하면 S3를 쓰고, 없으면 로컬 디스크를 씁니다 | 없음 |
 | `AWS_REGION` | S3 리전 | `ap-northeast-2` |
@@ -57,9 +57,18 @@ Python을 3.13으로 정한 이유는 psycopg 등 바이너리 휠 호환입니�
 - 모든 `/api` 요청에 헤더 `X-Device-Id`로 보냅니다. 백엔드는 이 값으로 내 신고와 AI 호출 상한을 구분합니다.
 - 기기 ID는 인증 수단이 아닙니다. 다른 기기의 신고를 조회·수정하지 못하도록 모든 조회에 기기 ID 조건을 겁니다.
 
+## DB
+- 앱이 시작할 때 `SQLModel.metadata.create_all`로 테이블을 만듭니다. 마이그레이션 도구(Alembic)는 쓰지 않습니다. 연결하지 못하면 2초 간격으로 최대 15번 다시 시도하고, 끝내 안 돼도 앱은 뜹니다. 이때 DB가 필요한 요청은 `503 db_unavailable`입니다.
+- 세션은 요청 단위로 열고 닫습니다(`deps.SessionDep`). 엔드포인트는 동기 `def`입니다. 쓰는 서비스가 직접 커밋합니다.
+- 모든 조회와 수정에 `device_id` 조건을 겁니다.
+- 테스트가 SQLite로 돌기 때문에 PostgreSQL 전용 타입(JSONB, ARRAY)을 쓰지 않습니다. 깊은 구조는 `sqlalchemy.JSON` 컬럼에 둡니다.
+- 시각은 timezone이 있는 값으로 저장하고(UTC), 응답은 KST(`+09:00`)로 냅니다(`models/types.py`의 `KSTDateTime`). 기기별 하루 AI 호출 수의 날짜도 KST입니다.
+
 ## 사진
-- 업로드는 백엔드가 받아서 저장소(`backend/app/storage/`)에 올립니다. 운영은 S3 비공개 버킷, `S3_BUCKET`이 없으면 로컬 디스크(`UPLOAD_DIR`)입니다. 저장소 코드는 인터페이스 하나 뒤에 두고, 라우터와 서비스는 구현을 직접 부르지 않습니다.
-- DB에는 S3 키만 저장합니다(URL을 저장하지 않습니다). API 응답의 사진 `url`에는 요청 시점에 만든 presigned GET URL(만료 `PRESIGN_EXPIRES_SECONDS`, 기본 1시간)을 넣습니다. 로컬 디스크 구현은 백엔드가 기기 ID를 확인하는 조회 경로의 URL을 돌려줍니다.
+- 업로드는 백엔드가 받아서 저장소(`backend/app/storage/`)에 올립니다. 운영은 S3 비공개 버킷, `S3_BUCKET`이 없으면 로컬 디스크(`UPLOAD_DIR`)입니다. 저장소 코드는 인터페이스 하나(`Storage`) 뒤에 두고, 라우터와 서비스는 구현을 직접 부르지 않습니다(`get_storage()`로만 받습니다).
+- DB에는 S3 키(`photos/{yyyy}/{mm}/{photo_id}.jpg`)만 저장합니다(URL을 저장하지 않습니다). API 응답의 사진 `url`에는 요청 시점에 만든 presigned GET URL(만료 `PRESIGN_EXPIRES_SECONDS`, 기본 1시간)을 넣습니다. 로컬 디스크 구현의 URL은 `GET /api/photos/{photo_id}/file`이고, `<img>`가 헤더를 보내지 못해 기기 ID를 검사하지 않습니다(추측할 수 없는 UUID가 접근 열쇠). 이 경로는 S3 모드에서 404입니다.
+- 자격 증명은 코드나 환경변수로 넘기지 않습니다. `boto3`가 EC2 IAM 역할을 자동으로 씁니다. 역할에는 해당 버킷의 `s3:PutObject`, `s3:GetObject`가 필요합니다. 업로드에 ACL을 지정하지 않습니다.
+- S3 오류(`ClientError`, `BotoCoreError`)는 `502 storage_unavailable`로 바꾸고 로그에는 오류 종류만 남깁니다.
 - 버킷은 퍼블릭 접근을 모두 막고, 접근 권한은 EC2 IAM 역할(인스턴스 프로파일)로만 줍니다.
 - 업로드는 이미지 MIME 타입과 크기 상한을 검증합니다. 파일명은 서버가 새로 만든 UUID로 저장하고, 사용자 입력 파일명을 경로에 쓰지 않습니다.
 - 사례로 공유된 사진은 원본 그대로 공개됩니다. 공유하지 않은 사진은 해당 기기 ID로 조회한 응답에서만 presigned URL을 만들어 줍니다.
@@ -107,7 +116,7 @@ docker compose down                 # 볼륨은 지우지 않습니다. `-v`는 
 - **비밀 값**: EC2의 `.env` 파일(커밋 금지)에 둡니다.
 - **절차 문서**: 배포 절차와 스크립트는 `deploy/`에 둡니다.
 
-- 테스트에서는 Anthropic API를 실제로 호출하지 않습니다. `backend/app/ai/` 경계에서 가짜 응답으로 대체합니다.
+- 테스트에서는 Anthropic API를 실제로 호출하지 않습니다. `backend/app/ai/` 경계에서 가짜 응답으로 대체합니다. DB는 SQLite 메모리(`sqlite://`, `StaticPool`), 사진은 임시 폴더의 `LocalStorage`, S3는 가짜 boto3 클라이언트로 바꿔서 PostgreSQL, S3에는 접속하지 않습니다.
 - 테스트 러너(pytest 등)가 아직 `pyproject.toml`에 없으면 추가한 뒤 이 문서를 고칩니다.
 
 ## 코드 규칙
