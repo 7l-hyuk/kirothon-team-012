@@ -1,0 +1,60 @@
+/* S0 홈(첫 화면) — 남색 배경 + 연한 패널. 색은 tokens.css만 씁니다.
+   세로 길이는 .app 컨테이너 높이(cqh)에 맞춰 늘고 줄어듭니다. 기준은 아이폰 14(390×844). */
+.landing {
+  flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;
+  background: var(--navy); color: #fff;
+}
+.ld-deco { position: absolute; pointer-events: none; line-height: 0; }
+
+/* 위쪽: 문양과 제목. 남는 높이를 모두 차지하고, 문양 영역(.ld-art)이 늘고 줄어듭니다 */
+.ld-hero {
+  position: relative; flex: 1 0 auto; display: flex; flex-direction: column;
+  /* 844px 높이에서 150px, 높이가 줄면 같은 만큼 줄어 최소 40px */
+  padding-top: calc(env(safe-area-inset-top) + clamp(40px, calc(100cqh - 694px), 150px));
+}
+.ld-frame { position: absolute; left: 12px; right: 12px; top: calc(env(safe-area-inset-top) + 18px); bottom: 0; border: 1px solid rgba(255,255,255,.18); border-bottom: 0; pointer-events: none; }
+.ld-top { position: absolute; left: 0; right: 0; top: env(safe-area-inset-top); height: 140px; pointer-events: none; }
+
+.ld-copy { position: relative; text-align: center; padding: 0 20px; }
+.ld-tagline { display: flex; align-items: center; justify-content: center; gap: 14px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,.72); }
+.ld-tagline span { width: 40px; height: 1px; background: rgba(255,255,255,.3); }
+.ld-title { position: relative; display: inline-block; margin-top: 8px; font-size: clamp(36px, 11.8cqw, 46px); line-height: 1.15; font-weight: 800; letter-spacing: -0.02em; }
+.ld-spark { position: absolute; right: -28px; top: -4px; }
+.ld-desc { margin-top: clamp(10px, 2.2cqh, 18px); font-size: 14px; line-height: 1.6; color: rgba(255,255,255,.72); }
+
+.ld-art { position: relative; flex: 1 1 0; min-height: 140px; max-height: 250px; margin-top: clamp(8px, 2.6cqh, 22px); }
+.ld-fit { position: absolute; pointer-events: none; line-height: 0; }
+.ld-fit > svg { width: 100%; height: 100%; }
+.ld-fit.ld-w > svg { height: auto; }
+.ld-flower { left: 50%; bottom: 24%; transform: translateX(-50%); }
+
+/* 아래쪽: 메뉴 패널 */
+.ld-panel {
+  position: relative; z-index: 1; flex: none; margin-top: -24px;
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 22px 20px calc(env(safe-area-inset-bottom) + clamp(24px, 7.5cqh, 64px));
+  background: var(--bg); color: var(--ink);
+  border-radius: 28px 28px 0 0;
+}
+.ld-card {
+  display: flex; align-items: center; text-align: left; width: 100%;
+  background: var(--card-2); border: 1px solid rgba(37,72,138,.06); border-radius: var(--r-xl);
+  box-shadow: var(--shadow);
+  transition: transform .12s, box-shadow .12s;
+}
+.ld-card:hover { box-shadow: var(--shadow-strong); }
+.ld-card:active { transform: scale(.985); }
+
+.ld-main { gap: 14px; padding: 16px; }
+.ld-icon-lg { flex: none; width: 70px; height: 70px; border-radius: 50%; background: var(--navy-soft); display: grid; place-items: center; }
+.ld-divider { flex: none; width: 1px; align-self: stretch; margin: 8px 0; background: var(--line-strong); }
+.ld-main-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.ld-main-text strong { font-size: 18px; font-weight: 800; }
+.ld-main-text span { font-size: 13px; line-height: 1.45; color: var(--sub); }
+.ld-arrow { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--navy-soft); display: grid; place-items: center; }
+
+.ld-row { display: flex; gap: 12px; }
+.ld-sub { flex: 1; gap: 10px; min-height: 60px; padding: 0 12px 0 16px; }
+.ld-sub-icon { color: var(--navy); line-height: 0; }
+.ld-sub strong { flex: 1; font-size: 15px; font-weight: 700; white-space: nowrap; }
+.ld-chev { color: var(--ink); line-height: 0; }

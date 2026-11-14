@@ -1,0 +1,42 @@
+# 작업 목록: 프론트 화면 톤 통일과 UI 흐름 재설계
+
+- [x] 0. S0 홈 화면(`Landing.tsx`, `LandingMotifs.tsx`, `landing.css`)을 다운로드한 디자인대로 구현하고 `/`에 연결 (spec 이전에 완료)
+- [x] 1. 토큰과 공통 CSS
+  - [x] 1.1 `tokens.css` 값을 남색 계열로 교체하고 `--navy*`, `--shadow`, `--r-xl` 추가
+  - [x] 1.2 `global.css`의 버튼, 카드, 말풍선, 칩, 타이머 스타일 교체
+  - [x] 1.3 `landing.css` 지역 색을 토큰으로 교체
+- [x] 2. 공통 부품
+  - [x] 2.1 `Icons.tsx` 선 아이콘
+  - [x] 2.2 `WaveBackdrop.tsx`
+  - [x] 2.3 `Mascot.tsx` 갓 쓴 유령
+  - [x] 2.4 `AppBar.tsx`, `Stepper.tsx`
+  - [x] 2.5 `ui`의 `Mark`, `Check`를 아이콘으로 교체
+  - [x] 2.6 store에 `toLanding()` 추가
+- [x] 3. UI 흐름
+  - [x] 3.1 `App.tsx`: 하단 탭 제거
+  - [x] 3.2 Landing "도움말" 카드 → "신고 사례"(`/cases`)
+  - [x] 3.3 `product.md` 화면 구조 절을 새 흐름에 맞게 수정
+- [x] 4. 화면 적용
+  - [x] 4.1 S1 `Home`: AppBar, Stepper, 입력 카드, 유형 카드 2×2 (`TYPE_CARDS` 추가)
+  - [x] 4.2 신고 대화 `Chat`: AppBar + Stepper
+  - [x] 4.3 `TimerOverlay`
+  - [x] 4.4 S9 `Done`: Stepper, 복사 버튼, 홈으로
+  - [x] 4.5 S10·S11 `Mine` (신고 조회)
+  - [x] 4.6 S12·S13 `Cases` (신고 사례)
+  - [x] 4.7 S14 `Share`
+- [x] 6. 피드백 반영
+  - [x] 6.1 마스코트 제거 (`Mascot.tsx` 삭제)
+  - [x] 6.2 아이폰 14 기준 비율과 다른 화면 비율 대응 (`viewport`, `--frame-scale`, `cqh`, safe-area)
+  - [x] 6.3 보조 설명 문구 제거, S1 제목 한 줄
+- [x] 7. UI 고도화 (사진·백엔드 제외)
+  - [x] 7.1 움직임: 화면 진입, 새 말풍선·카드 등장, 분석 중 로딩 말풍선, 토스트 등장. `prefers-reduced-motion`이면 끔
+  - [x] 7.2 겹침: 토스트가 하단 버튼 줄을 가리지 않게, 대화 아래 여백에 safe-area 추가
+  - [x] 7.3 중복 표시: S7 카드 안 진행 표시를 한 줄로, AI 고지는 지나간 불충분 카드에서 숨김
+  - [x] 7.4 타이머 마지막 순간 강조 (10초 전부터 원 강조, 끝나면 맥박 효과와 큰 버튼)
+  - [x] 7.5 Pretendard 글꼴을 npm 패키지로 넣어 CDN 의존 제거
+  - [x] 7.6 대화를 스크롤하면 단계 표시를 얇은 막대로 줄임
+  - [x] 7.7 일러스트: 신고 불가 결과, 신고 조회·사례 빈 상태
+  - [x] 7.8 S0 신고하기 카드 문구를 "사진 한 장이면 신고 준비를 도와드려요"로 변경 (여백 조정은 시도 후 되돌림)
+- [ ] 5. 검증
+  - [x] 5.1 `npm run build` 통과, `npm run lint` 오류 0
+  - [ ] 5.2 390×844 스크린샷으로 화면별 확인 (에이전트 환경에서 미리보기 서버 실행이 막혀 미완료. `npm run dev`로 직접 확인 필요)
