@@ -19,23 +19,6 @@ export const TYPE_CARDS: { icon: TypeIcon; title: string; desc: string; example:
   { icon: "cone", title: "시설물 파손", desc: "보도블록, 가로등 등", example: "도로나 시설물이 파손돼 있어요" },
 ];
 
-export interface SubmitStep { pre?: string; b?: string; post?: string; sub?: string; btn: string; msg?: string }
-export const SUBMIT_STEPS: SubmitStep[] = [
-  { pre: "안전신문고에 접속하세요", sub: "safetyreport.go.kr 또는 앱", btn: "안전신문고 열기", msg: "안전신문고를 열었어요" },
-  { pre: "로그인하세요", sub: "회원이 아니면 본인인증 후 비회원 신고도 가능합니다", btn: "했어요" },
-  { b: "생활불편 신고 > 쓰레기·폐기물", post: " 을 선택하세요", btn: "했어요" },
-  { b: "사진", post: " 항목에 아래 2장을 첨부하세요", btn: "사진 저장", msg: "사진 2장을 저장했어요" },
-  { b: "발생 위치", post: " 는 지도에서 현재 위치를 확인하세요", btn: "했어요" },
-  { b: "내용", post: " 항목에 아래 글을 붙여 넣으세요", btn: "글 복사", msg: "글을 복사했어요" },
-  { pre: "제출하고, 접수번호를 알려 주세요 (선택)", btn: "접수 완료" },
-];
-
-export const DRAFTS = [
-  "서울시 마포구 ○○로 12 앞 전봇대 아래에 종량제 봉투를 쓰지 않은 생활쓰레기가 무단투기되어 있습니다. 2026년 11월 14일 오후 2시경 확인했으며, 악취와 통행 불편이 있어 수거와 단속을 요청드립니다.",
-  "서울시 마포구 ○○로 12 앞 전봇대 아래에 생활쓰레기가 무단투기되어 있습니다. 2026년 11월 14일 오후 2시경 확인했습니다. 수거와 단속을 요청드립니다.",
-  "안녕하세요. 서울시 마포구 ○○로 12 앞 전봇대 아래에 종량제 봉투를 쓰지 않은 생활쓰레기가 무단투기되어 있어 알려 드립니다. 2026년 11월 14일 오후 2시경 확인했으며, 악취와 통행 불편이 있습니다. 수거와 단속을 부탁드립니다. 감사합니다.",
-];
-
 export type MineGroup = "준비 중" | "접수 완료" | "처리 완료";
 export interface MineItem { id: number; type: string; place: string; status: string; g: MineGroup; to: string; no: string; cont?: boolean }
 export const MINE: MineItem[] = [

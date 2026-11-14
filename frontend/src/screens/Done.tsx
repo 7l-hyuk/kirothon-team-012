@@ -13,8 +13,8 @@ export function Done() {
   const { s, openShare, toast, toLanding } = useStore();
   const n = s.finished.length;
   const nav = useNavigate();
-  // 접수처(to)는 신고 조회 연동(feat/fe-my-reports)에서 GET /api/reports/{id}의 channel로 채운다.
-  const items = s.finished.map((f) => ({ type: f.label, kind: f.category === "report" ? "신고" : "민원", to: "안전신문고", no: f.receipt || NONE }));
+  // 접수처는 접수 안내(GET /guide)의 channel에서 가져온다.
+  const items = s.finished.map((f) => ({ type: f.label, kind: f.category === "report" ? "신고" : "민원", to: f.to, no: f.receipt || NONE }));
 
   const copy = (no: string) => {
     navigator.clipboard?.writeText(no).catch(() => {});

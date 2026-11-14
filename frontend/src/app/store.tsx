@@ -3,24 +3,22 @@
    - p === 3일 때 reports[cur] 한 건씩 서버의 sequence 순서로 진행한다. rstage가 그 건의 단계다.
        evidence   S4·S5 증거 체크리스트와 사진 검수 (쓰레기, 광고물, 시설물)
        rehearsal  S6 불법주정차 사전 점검과 본촬영 안내, 타이머
-       submit     불법주정차 본촬영 뒤 "제출했어요"
-       guide      S7 접수 안내 (아직 대본. feat/fe-guide에서 GET /guide로 바꾼다)
+       guide      S7 접수 안내 (GET /guide). 불법주정차는 사진 단계에서 타이머를 돌린다
        next       S8 다음 항목 안내
    - API 호출은 화면을 떠나거나 새로 시작하면(req 증가) 늦게 온 응답을 버린다. */
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { DRAFTS, SUBMIT_STEPS } from "../data/content";
 import { createAnalysis, createReports, type Analysis, type Category, type ReportRef, type TypeId } from "../api/analyses";
-import { getEvidence, rehearse, uploadPhoto, type Evidence, type Rehearsal, type SceneReview } from "../api/reports";
+import { getEvidence, getGuide, makeDraft, patchReport, rehearse, uploadPhoto, type Evidence, type Guide, type GuideStep, type Rehearsal, type SceneReview, type Tone } from "../api/reports";
 import { ApiError, errorMessage } from "../api/client";
 
 export type Scenario = "A" | "B";
 export type ResultChoice = "수용" | "불수용" | "아직 모름";
-export type ReportStage = "evidence" | "rehearsal" | "submit" | "guide" | "next";
+export type ReportStage = "evidence" | "rehearsal" | "guide" | "next";
 
 /** 이번 세션에 장면별로 마지막으로 올린 사진(미리보기)과 검수 결과. */
 export interface Shot { preview: string; review: SceneReview | null }
-export interface Finished { id: string; label: string; category: Category; receipt: string }
+export interface Finished { id: string; label: string; category: Category; receipt: string; to: string }
 
 /** 사전 점검에 쓸 사진을 따로 올릴 때 shots에 쓰는 키 */
 export const REHEARSAL_SHOT = "_rehearsal";
@@ -37,7 +35,10 @@ export interface FlowState {
   evidence: Evidence | null; evError: string; uploading: string; shots: Record<string, Shot>;
   rehearsal: Rehearsal | null; rhBusy: boolean; rhError: string; rhNeedsPhoto: boolean;
   finished: Finished[];
-  s7: number; draft: number; receipt: string;
+  /** S7: 접수 안내, 지금 보는 단계(steps의 인덱스), 대필 문구 */
+  guide: Guide | null; gIdx: number; gError: string; filing: boolean;
+  draftText: string; draftTone: Tone; draftBusy: boolean; draftError: string;
+  receipt: string;
   sec: number; timerTotal: number; timer: boolean; timerDone: boolean;
   filter: string; cfilter: string;
   item: number; art: number; result: ResultChoice; reason: string;
@@ -51,7 +52,7 @@ const base = (): FlowState => ({
   p: 0, phase: 0,
   cur: 0, rstage: "evidence", evidence: null, evError: "", uploading: "", shots: {},
   rehearsal: null, rhBusy: false, rhError: "", rhNeedsPhoto: false, finished: [],
-  s7: 0, draft: 0, receipt: "",
+  guide: null, gIdx: 0, gError: "", filing: false, draftText: "", draftTone: "default", draftBusy: false, draftError: "", receipt: "",
   sec: 60, timerTotal: 60, timer: false, timerDone: false, filter: "전체", cfilter: "전체",
   item: 1, art: 1, result: "수용", reason: "", agree: false, shareFrom: "done", helped: {}, toast: "", fromCase: false,
 });
@@ -78,7 +79,13 @@ interface Store {
   completeReport: () => void;
   nextReport: () => void;
   skipReport: () => void;
-  s7Next: () => void;
+  loadGuide: () => void;
+  gPrev: () => void;
+  /** 지금 단계의 버튼 동작. 성공하면 다음 단계로 간다 */
+  gAction: () => void;
+  /** 지금 단계를 동작 없이 넘긴다(사진 저장을 직접 한 경우 등) */
+  gNext: () => void;
+  redraft: (t: Tone) => void;
   startTimer: () => void;
   cancelTimer: () => void;
   timerShot: () => void;
@@ -194,7 +201,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       cur: i, rstage: parking ? "rehearsal" : "evidence",
       evidence: null, evError: "", uploading: "", shots: {},
       rehearsal: null, rhBusy: false, rhError: "", rhNeedsPhoto: false,
-      s7: 0, draft: 0, receipt: "",
+      guide: null, gIdx: 0, gError: "", filing: false, draftText: "", draftTone: "default", draftBusy: false, draftError: "", receipt: "",
     });
     // set이 반영된 다음 cur를 읽도록 참조를 먼저 맞춘다.
     sr.current = { ...sr.current, cur: i };
@@ -263,7 +270,42 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [set, runRehearsal]);
 
-  const toGuide = useCallback(() => set({ rstage: "guide", s7: 0, draft: 0, receipt: "" }), [set]);
+
+  // ── S7 접수 안내 ────────────────────────────────────────────
+  const redraft = useCallback(async (tone: Tone) => {
+    const r = sr.current.reports[sr.current.cur];
+    if (!r || sr.current.draftBusy) return;
+    const id = req.current;
+    set({ draftBusy: true, draftError: "", draftTone: tone });
+    try {
+      const d = await makeDraft(r.id, tone);
+      if (alive(id)) set({ draftText: d.text, draftBusy: false });
+    } catch (e) {
+      if (alive(id)) set({ draftBusy: false, draftError: errorMessage(e) });
+    }
+  }, [set]);
+
+  const loadGuide = useCallback(async () => {
+    const r = sr.current.reports[sr.current.cur];
+    if (!r) return;
+    const id = req.current;
+    set({ rstage: "guide", guide: null, gError: "" });
+    try {
+      const g = await getGuide(r.id);
+      if (!alive(id)) return;
+      // 앞 건에서 끝낸 단계와, 이 건에서 이미 지난 단계는 건너뛴다.
+      let gIdx = g.steps.findIndex((st) => !st.skipped && st.order > g.current_step);
+      if (gIdx < 0) gIdx = g.steps.findIndex((st) => !st.skipped);
+      set({ guide: g, gIdx: Math.max(gIdx, 0) });
+      // 문구 대필은 몇 초 걸리므로 안내를 여는 즉시 미리 받아 둔다.
+      const copy = g.steps.find((st) => st.action.kind === "copy_text");
+      if (copy && !copy.action.text) void redraft("default");
+      else if (copy?.action.text) set({ draftText: copy.action.text });
+    } catch (e) {
+      if (alive(id)) set({ gError: errorMessage(e) });
+    }
+  }, [set, redraft]);
+  const toGuide = loadGuide;
 
   const finish = useCallback(() => { set({ p: 10 }); nav("/done"); }, [set, nav]);
 
@@ -271,11 +313,76 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const cur = sr.current;
     const r = cur.reports[cur.cur];
     if (!r) return;
-    const done: Finished = { id: r.id, ...labelOf(r.type_id), receipt: cur.receipt.trim() };
+    const ch = cur.guide?.channel;
+    const to = ch ? [ch.name, ch.menu_path[0]].filter(Boolean).join(" > ") : "안전신문고";
+    const done: Finished = { id: r.id, ...labelOf(r.type_id), receipt: cur.receipt.trim(), to };
     set((prev) => ({ finished: [...prev.finished, done] }));
     if (cur.cur + 1 < cur.reports.length) set({ rstage: "next" });
     else finish();
   }, [set, labelOf, finish]);
+
+  /** 건너뛰지 않은 단계 중 i 다음(dir=1) 또는 이전(dir=-1) 단계의 인덱스. 없으면 -1 */
+  const stepFrom = (steps: GuideStep[], i: number, dir: 1 | -1) => {
+    for (let j = i + dir; j >= 0 && j < steps.length; j += dir) if (!steps[j].skipped) return j;
+    return -1;
+  };
+
+  const gNext = useCallback(() => {
+    const cur = sr.current;
+    const r = cur.reports[cur.cur];
+    const g = cur.guide;
+    if (!r || !g) return;
+    const step = g.steps[cur.gIdx];
+    // 진행 단계 저장. 실패해도 안내는 계속한다(다음 단계에서 다시 저장된다).
+    patchReport(r.id, { current_step: step.order }).catch(() => {});
+    const next = stepFrom(g.steps, cur.gIdx, 1);
+    if (next >= 0) set({ gIdx: next });
+    else completeReport();
+  }, [set, completeReport]);
+
+  const gPrev = useCallback(() => {
+    const cur = sr.current;
+    if (!cur.guide) return;
+    const prev = stepFrom(cur.guide.steps, cur.gIdx, -1);
+    if (prev >= 0) set({ gIdx: prev });
+  }, [set]);
+
+  const gAction = useCallback(async () => {
+    const cur = sr.current;
+    const r = cur.reports[cur.cur];
+    const step = cur.guide?.steps[cur.gIdx];
+    if (!r || !step) return;
+    const a = step.action;
+    if (a.kind === "open_link") {
+      if (a.url) window.open(a.url, "_blank", "noopener");
+      gNext();
+    } else if (a.kind === "copy_text") {
+      const text = cur.draftText || a.text || "";
+      if (!text) return;
+      try { await navigator.clipboard.writeText(text); toast("글을 복사했어요"); } catch { toast("글을 길게 눌러 복사해 주세요"); return; }
+      gNext();
+    } else if (a.kind === "save_photos") {
+      const ok = await savePhotos(a.photos ?? []);
+      if (ok === "saved") { toast("사진을 저장했어요"); gNext(); }
+      else if (ok === "failed") toast("사진을 길게 눌러 저장한 뒤 \"직접 저장했어요\"를 눌러 주세요");
+    } else if (a.kind === "submit") {
+      if (cur.filing) return;
+      const id = req.current;
+      set({ filing: true });
+      try {
+        await patchReport(r.id, { status: "filed", current_step: step.order, receipt_number: cur.receipt.trim() || null });
+        if (!alive(id)) return;
+        set({ filing: false });
+        completeReport();
+      } catch (e) {
+        if (!alive(id)) return;
+        set({ filing: false });
+        toast(errorMessage(e));
+      }
+    } else {
+      gNext();
+    }
+  }, [set, toast, gNext, completeReport]);
 
   const nextReport = useCallback(() => enterReport(sr.current.cur + 1), [enterReport]);
 
@@ -286,15 +393,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     else if (cur.finished.length) finish();
     else goHome();
   }, [enterReport, finish, goHome]);
-
-  const s7Next = useCallback(() => {
-    const cur = sr.current;
-    const step = SUBMIT_STEPS[cur.s7];
-    if (step.msg) toast(step.msg);
-    if (cur.s7 === 5) navigator.clipboard?.writeText(DRAFTS[cur.draft]).catch(() => {});
-    if (cur.s7 < SUBMIT_STEPS.length - 1) set({ s7: cur.s7 + 1 });
-    else completeReport();
-  }, [set, toast, completeReport]);
 
   const startTimer = useCallback(() => {
     const total = sr.current.rehearsal?.capture_guide.interval_seconds || 60;
@@ -308,7 +406,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }, FAST ? 100 : 1000);
   }, [set]);
   const cancelTimer = useCallback(() => { clearInterval(iv.current); set({ timer: false }); }, [set]);
-  const timerShot = useCallback(() => set({ timer: false, timerDone: false, rstage: "submit" }), [set]);
+  // 불법주정차: 안내의 사진 단계에서 타이머를 마치면 다음 단계로 간다.
+  const timerShot = useCallback(() => { set({ timer: false, timerDone: false }); gNext(); }, [set, gNext]);
 
   /** S8에서 "나중에": 남은 건은 준비 중으로 둔다. 서버에 이미 preparing으로 저장돼 있다. */
   const later = useCallback(() => {
@@ -335,11 +434,44 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Store>(() => ({
     s, set, toast, send, retry, toggleItem, goHome, toLanding, startPrep, current,
     reloadEvidence, shoot, toGuide, runRehearsal: () => void runRehearsal(), rehearsalPhoto, completeReport, nextReport, skipReport,
-    s7Next, startTimer, cancelTimer, timerShot, later, openShare, doShare, startFromCase, n,
+    loadGuide, gPrev, gAction, gNext, redraft, startTimer, cancelTimer, timerShot, later, openShare, doShare, startFromCase, n,
   }), [s, set, toast, send, retry, toggleItem, goHome, toLanding, startPrep, current, reloadEvidence, shoot, toGuide, runRehearsal,
-    rehearsalPhoto, completeReport, nextReport, skipReport, s7Next, startTimer, cancelTimer, timerShot, later, openShare, doShare, startFromCase, n]);
+    rehearsalPhoto, completeReport, nextReport, skipReport, loadGuide, gPrev, gAction, gNext, redraft, startTimer, cancelTimer, timerShot, later, openShare, doShare, startFromCase, n]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}
+
+/** 사진을 기기에 저장한다. 공유 시트(모바일)나 내려받기(PC)를 쓰고, 둘 다 안 되면 "failed".
+ *  사용자가 공유 시트를 닫으면 "cancelled". */
+async function savePhotos(photos: { id: string; url: string }[]): Promise<"saved" | "cancelled" | "failed"> {
+  if (!photos.length) return "saved";
+  try {
+    const files = await Promise.all(photos.map(async (p, i) => {
+      const res = await fetch(p.url);
+      if (!res.ok) throw new Error(String(res.status));
+      const blob = await res.blob();
+      return new File([blob], `shingomate-${i + 1}.${blob.type.split("/")[1] || "jpg"}`, { type: blob.type || "image/jpeg" });
+    }));
+    if (navigator.canShare?.({ files })) {
+      try {
+        await navigator.share({ files });
+        return "saved";
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return "cancelled";
+        // 공유를 쓸 수 없으면(권한, 미지원 형식 등) 내려받기로 넘어간다.
+      }
+    }
+    for (const f of files) {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(f);
+      a.download = f.name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+    return "saved";
+  } catch (e) {
+    return e instanceof DOMException && e.name === "AbortError" ? "cancelled" : "failed";
+  }
 }
 
 export function useStore() {
