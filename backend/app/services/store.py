@@ -229,6 +229,42 @@ def scene_refs(session: Session, rec: Report) -> dict[str, PhotoRef]:
     return {sid: refs[pid] for sid, pid in ids.items() if pid in refs}
 
 
+@dataclass
+class AnalysisThumbs:
+    """목록 한 번에서 같은 분석을 다시 조회하지 않기 위한 캐시."""
+
+    item_photo_ids: dict[str, list[str]]
+    photos: dict[str, Photo]  # 분석에 올린 사진 id → 행
+    first_id: str | None
+
+
+def load_analysis_thumbs(session: Session, analysis_id: str) -> AnalysisThumbs:
+    row = session.get(Analysis, analysis_id)
+    rows = session.exec(
+        select(Photo).where(Photo.analysis_id == analysis_id).order_by(Photo.taken_order, Photo.created_at)  # type: ignore[arg-type]
+    ).all()
+    return AnalysisThumbs(
+        item_photo_ids={t: list(ids) for t, ids in (row.item_photo_ids if row else {}).items()},
+        photos={p.id: p for p in rows},
+        first_id=rows[0].id if rows else None,
+    )
+
+
+def thumbnail_url(session: Session, rec: Report, cache: dict[str, AnalysisThumbs]) -> str | None:
+    """목록 썸네일: 이 건의 첫 사진 → 분석에서 이 유형의 문제가 보인 첫 사진 → 분석의 첫 사진 → None."""
+    own = report_photos(session, rec)
+    if own:
+        return own[0].url
+    if rec.analysis_id not in cache:
+        cache[rec.analysis_id] = load_analysis_thumbs(session, rec.analysis_id)
+    thumbs = cache[rec.analysis_id]
+    for pid in (thumbs.item_photo_ids.get(rec.type_id) or [])[:1] + ([thumbs.first_id] if thumbs.first_id else []):
+        photo = thumbs.photos.get(pid)
+        if photo is not None:
+            return photo_url(photo)
+    return None
+
+
 def report_photos(session: Session, rec: Report) -> list[ScenePhoto]:
     """이 건의 사진: 장면에 쓰는 사진 + 장면 없이 올린 사진. 대체된 이전 사진은 들어가지 않습니다."""
     refs = scene_refs(session, rec)
