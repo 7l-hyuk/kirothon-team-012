@@ -206,6 +206,22 @@ def set_scene(rec: Report, scene_id: str, state: SceneState) -> None:
     rec.scenes = scenes
 
 
+# 사전 점검 항목별 판정은 새 컬럼 없이 reports.scenes(JSON)의 예약 키에 둡니다. 장면 id와 겹치지 않습니다.
+REHEARSAL_KEY = "_rehearsal"
+REHEARSAL_SCENE_MESSAGE = "사전 점검을 마쳤어요"  # 사전 점검이 증거 장면을 채울 때 넣는 문구(사진 검수 결과가 아님)
+
+
+def set_rehearsal_checks(rec: Report, checks: list[tuple[str, str]]) -> None:
+    scenes = dict(rec.scenes or {})
+    scenes[REHEARSAL_KEY] = {"checks": [{"key": k, "status": s} for k, s in checks]}
+    rec.scenes = scenes
+
+
+def rehearsal_checks(rec: Report) -> list[tuple[str, str]]:
+    raw = (rec.scenes or {}).get(REHEARSAL_KEY) or {}
+    return [(c["key"], c["status"]) for c in raw.get("checks", [])]
+
+
 def scene_refs(session: Session, rec: Report) -> dict[str, PhotoRef]:
     """사진이 있는 장면의 scene_id → 사진(URL 포함)."""
     ids = {sid: st.photo_id for sid in (rec.scenes or {}) if (st := scene_state(rec, sid)).photo_id}

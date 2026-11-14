@@ -1,4 +1,4 @@
-"""SQLModel 테이블: analyses, reports, photos, ai_usage.
+"""SQLModel 테이블: analyses, reports, photos, ai_usage, cases, case_likes, case_photos, case_drafts.
 
 - PostgreSQL 전용 타입(JSONB, ARRAY)은 쓰지 않습니다. 테스트가 SQLite로 돌기 때문입니다.
 - 깊은 구조의 값은 `sqlalchemy.JSON` 컬럼에 둡니다.
@@ -109,6 +109,68 @@ class Photo(SQLModel, table=True):
     review_message: str | None = None
     retake_tip: str | None = None
     taken_order: int = 1
+    created_at: datetime = _dt()
+
+
+class Case(SQLModel, table=True):
+    """공유된 사례. 비식별화는 초안을 만들 때 끝나서 상세 주소, 접수번호, 정확한 날짜 컬럼이 없습니다.
+
+    신고 건에는 컬럼을 더하지 않고 `report_id`(유일)로 조회합니다. 예시 사례(`is_seed`)는 report_id, device_id가 NULL입니다.
+    """
+
+    __tablename__ = "cases"
+
+    id: str = Field(primary_key=True, max_length=36)
+    report_id: str | None = Field(
+        default=None, sa_column=Column(String(36), ForeignKey("reports.id"), nullable=True, unique=True)
+    )
+    device_id: str | None = Field(default=None, index=True, max_length=36)  # 공유한 기기. 예시는 NULL
+    type_id: str = Field(index=True)
+    title: str
+    sections: list[Any] = _json(list)  # [{heading, body}] 5개
+    result_label: str
+    district: str | None = None  # 구 단위
+    period: str  # 월 단위. 예: "2026년 11월"
+    like_count: int = 0
+    is_seed: bool = False
+    created_at: datetime = _dt()
+
+
+class CaseLike(SQLModel, table=True):
+    __tablename__ = "case_likes"
+    __table_args__ = (UniqueConstraint("case_id", "device_id", name="uq_case_likes_case_device"),)
+
+    id: int | None = Field(default=None, primary_key=True)
+    case_id: str = Field(sa_column=Column(String(36), ForeignKey("cases.id"), nullable=False, index=True))
+    device_id: str = Field(max_length=36)
+
+
+class CasePhoto(SQLModel, table=True):
+    __tablename__ = "case_photos"
+
+    id: int | None = Field(default=None, primary_key=True)
+    case_id: str = Field(sa_column=Column(String(36), ForeignKey("cases.id"), nullable=False, index=True))
+    photo_id: str = Field(sa_column=Column(String(36), ForeignKey("photos.id"), nullable=False))
+    position: int = 0
+
+
+class CaseDraft(SQLModel, table=True):
+    """미리보기에서 만든 사례 글. 신고 건당 한 행. 공유할 때 이 글을 그대로 씁니다."""
+
+    __tablename__ = "case_drafts"
+
+    id: int | None = Field(default=None, primary_key=True)
+    report_id: str = Field(
+        sa_column=Column(String(36), ForeignKey("reports.id"), nullable=False, unique=True)
+    )
+    device_id: str = Field(max_length=36)
+    # "{status}|{result}|{result_reason}". 신고 건의 처리 결과가 바뀌면 값이 달라져 초안을 새로 만듭니다.
+    fingerprint: str
+    title: str
+    sections: list[Any] = _json(list)
+    result_label: str
+    district: str | None = None
+    period: str
     created_at: datetime = _dt()
 
 

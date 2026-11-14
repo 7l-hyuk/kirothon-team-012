@@ -75,3 +75,13 @@ class DraftOutput(BaseModel):
 
 
 Tone = Literal["default", "shorter", "politer"]
+
+
+# ---- 사례 공유 글 ----
+class CaseDraftOutput(BaseModel):
+    title: str
+    situation: str  # 어떤 상황이었나
+    photos: str  # 어떤 사진을 준비했나
+    filing: str  # 어디에 어떻게 접수했나
+    result: str  # 결과와 걸린 시간
+    tip: str  # 다음 사람을 위한 팁
