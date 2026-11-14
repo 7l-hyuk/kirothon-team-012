@@ -1,9 +1,14 @@
 """오류 코드, 공통 예외, 처리기. 응답 형태는 항상 {"detail": "해요체", "code": "snake_case"}."""
 
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import InterfaceError, OperationalError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+logger = logging.getLogger(__name__)
 
 
 class ErrorCode:
@@ -16,6 +21,8 @@ class ErrorCode:
     AI_REFUSED = "ai_refused"
     DAILY_LIMIT_EXCEEDED = "daily_limit_exceeded"
     AI_UNAVAILABLE = "ai_unavailable"
+    STORAGE_UNAVAILABLE = "storage_unavailable"
+    DB_UNAVAILABLE = "db_unavailable"
     # 명세 밖의 보조 코드
     METHOD_NOT_ALLOWED = "method_not_allowed"
     INTERNAL_ERROR = "internal_error"
@@ -67,6 +74,16 @@ def daily_limit_exceeded() -> ApiError:
     )
 
 
+def storage_unavailable() -> ApiError:
+    return ApiError(
+        502, ErrorCode.STORAGE_UNAVAILABLE, "사진을 저장하거나 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요."
+    )
+
+
+def db_unavailable() -> ApiError:
+    return ApiError(503, ErrorCode.DB_UNAVAILABLE, "서버가 잠시 준비되지 않았어요. 잠시 뒤 다시 시도해 주세요.")
+
+
 def _body(detail: str, code: str) -> dict[str, str]:
     return {"detail": detail, "code": code}
 
@@ -75,6 +92,14 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(ApiError)
     async def _api_error(_: Request, exc: ApiError) -> JSONResponse:
         return JSONResponse(_body(exc.detail, exc.code), status_code=exc.status_code)
+
+    @app.exception_handler(OperationalError)
+    @app.exception_handler(InterfaceError)
+    async def _db_down(_: Request, exc: Exception) -> JSONResponse:
+        # 요청 중에 DB 연결이 끊긴 경우. 접속 주소나 비밀번호가 로그에 남지 않게 예외 종류만 기록합니다.
+        logger.warning("DB 오류: %s", type(exc).__name__)
+        err = db_unavailable()
+        return JSONResponse(_body(err.detail, err.code), status_code=err.status_code)
 
     @app.exception_handler(RequestValidationError)
     async def _validation(_: Request, exc: RequestValidationError) -> JSONResponse:

@@ -1,11 +1,2 @@
-"""옛 import 경로(app.mock.store)를 위한 재수출. 저장소는 app.services.store로 옮겼습니다."""
-
-from app.services.store import (  # noqa: F401
-    AnalysisRecord,
-    MemoryStore,
-    PhotoRecord,
-    ReportRecord,
-    SceneMatch,
-    SceneState,
-    store,
-)
+"""옛 import 경로. 메모리 저장소는 없어졌고 저장은 app.services.store(DB)가 맡습니다.
+쓰이는 곳이 없어서 `git rm backend/app/mock/store.py`로 지워도 됩니다."""

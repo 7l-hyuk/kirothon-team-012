@@ -4,36 +4,71 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import func
+from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, SQLModel, create_engine, select
 
 from app import db
+from app import storage as storage_module
 from app.ai import client as ai_client
 from app.config import get_settings
 from app.main import app
-from app.services.store import store
+from app.models import Photo
+from app.storage import get_storage
+
+
+def make_sqlite_engine(url: str = "sqlite://"):
+    """테스트용 SQLite 엔진. 메모리 DB는 StaticPool로 연결 하나를 모든 스레드가 같이 씁니다."""
+    if url == "sqlite://":
+        return create_engine(
+            url, connect_args={"check_same_thread": False}, poolclass=StaticPool
+        )
+    return create_engine(url, connect_args={"check_same_thread": False})
 
 
 @pytest.fixture(autouse=True)
-def _reset_store():
-    store.reset()
-    yield
-    store.reset()
+def _sqlite_db():
+    """요청이 쓰는 DB를 SQLite 메모리 DB로 바꿉니다. PostgreSQL에는 붙지 않습니다."""
+    engine = make_sqlite_engine()
+    SQLModel.metadata.create_all(engine)
+    db._engine = engine
+    db._ready = True
+    db._last_attempt = float("-inf")
+    yield engine
+    engine.dispose()
+    db._engine = None
+    db._ready = False
+    db._last_attempt = float("-inf")
 
 
 @pytest.fixture(autouse=True)
 def _no_real_db(monkeypatch):
-    # 테스트는 실제 DB에 붙지 않습니다.
+    # /api/health 의 db 상태는 기본으로 "연결 안 됨"으로 둡니다(요청이 쓰는 DB는 위의 SQLite입니다).
     monkeypatch.setattr(db, "check_db", lambda: False)
 
 
 @pytest.fixture(autouse=True)
 def _mock_mode_by_default(monkeypatch, tmp_path):
-    """기본은 키 없는 가짜 모드입니다. 개발자의 환경변수와 backend/.env 가 섞이지 않게 합니다."""
+    """기본은 키 없는 가짜 모드입니다. 개발자의 환경변수와 backend/.env 가 섞이지 않게 합니다.
+
+    사진은 임시 폴더의 LocalStorage에 저장합니다(S3_BUCKET 없음).
+    """
     monkeypatch.chdir(tmp_path)  # .env 는 현재 디렉터리 기준으로 읽습니다.
-    for name in ("ANTHROPIC_API_KEY", "CLAUDE_MODEL", "AI_DAILY_LIMIT"):
+    for name in (
+        "ANTHROPIC_API_KEY",
+        "CLAUDE_MODEL",
+        "AI_DAILY_LIMIT",
+        "S3_BUCKET",
+        "AWS_REGION",
+        "PRESIGN_EXPIRES_SECONDS",
+    ):
         monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("UPLOAD_DIR", str(tmp_path / "uploads"))
     get_settings.cache_clear()
+    storage_module._cache = None
     yield
     get_settings.cache_clear()
+    storage_module._cache = None
 
 
 @pytest.fixture
@@ -44,6 +79,20 @@ def client() -> TestClient:
 @pytest.fixture
 def headers() -> dict[str, str]:
     return {"X-Device-Id": str(uuid.uuid4())}
+
+
+# ---- DB와 저장소를 직접 들여다보는 도우미 (옛 메모리 저장소 접근을 대신합니다) ----
+def count_rows(model) -> int:
+    """테이블의 행 수."""
+    with Session(db.get_engine()) as session:
+        return session.exec(select(func.count()).select_from(model)).one()
+
+
+def set_photo_bytes(photo_id: str, data: bytes) -> None:
+    """저장된 사진 파일의 내용을 바꿉니다(어느 사진이 AI에 갔는지 구분하기 위해서)."""
+    with Session(db.get_engine()) as session:
+        key = session.get(Photo, photo_id).s3_key
+    get_storage().put(key, data)
 
 
 # 가짜 모드 테스트용: 이미지로 열 수 없는 바이트입니다.
