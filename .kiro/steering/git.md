@@ -7,18 +7,19 @@ inclusion: always
 심사는 2026-11-14(토) 18:00 시점의 `main`만 봅니다. 제출 요건은 `tech.md`의 "제출 요건"을, 폴더 구조는 `structure.md`를 따릅니다.
 
 ## 브랜치
-- 기능별 짧은 브랜치에서 작업하고 `main`으로 자주 병합합니다. `main`에 직접 커밋하지 않습니다.
+- 기능별 짧은 브랜치에서 작업하고 PR로 `main`에 자주 병합합니다. `main`에 직접 커밋하거나 push하지 않습니다.
 - 이름은 `feat/<기능>`, `fix/<내용>`, `docs/<내용>`, `chore/<내용>`. 영문 소문자와 하이픈만 씁니다.
-- 예: `feat/analyze`, `feat/evidence-check`, `feat/guide-steps`, `feat/my-reports`, `feat/articles`
+- 백엔드는 `feat/be-<기능>`, 프론트는 `feat/fe-<기능>`을 씁니다. 예: `feat/be-analyze`, `feat/be-evidence-check`, `feat/fe-guide-steps`, `feat/fe-my-reports`
 - 한 브랜치는 한 기능만 다룹니다.
-- 기능이 로컬에서 동작하면 바로 `main`에 병합하고 push합니다. 브랜치를 1시간 넘게 병합하지 않고 두지 않습니다.
+- 기능이 로컬에서 동작하면 바로 PR을 엽니다. 브랜치를 1시간 넘게 병합하지 않고 두지 않습니다.
 
 ## 병합
 1. 병합 전에 `main`의 최신 내용을 브랜치로 가져와 충돌을 브랜치에서 먼저 해결합니다.
-2. `main`에서 `git merge --no-ff <브랜치>`로 병합합니다.
-3. 바로 push합니다.
+2. 브랜치를 push하고 PR을 엽니다. PR 본문은 `.github/pull_request_template.md`의 절(배경, 변경 사항, 검증, 확인 사항, 배포 전 필수, 인수인계, 참고)을 따릅니다. 상대방 작업에 영향을 주는 변경은 인수인계 표에 받는 사람을 적습니다.
+3. PR의 CI(`backend`, `frontend`, `docker`)가 통과한 뒤 병합합니다.
+4. `main`에 병합되면 `.github/workflows/deploy.yml`이 서버에 자동 배포합니다. 병합 뒤 `https://www.room2ate.cloud/api/health`를 확인합니다.
 
-- `main`은 항상 실행 가능해야 합니다. 병합 전에 백엔드 실행과 `uv run pytest`(프론트를 건드렸으면 `npm run build`)를 확인합니다.
+- `main`은 항상 실행 가능해야 합니다. PR을 열기 전에 로컬에서 `uv run pytest`(프론트를 건드렸으면 `npm run build`)를 확인합니다.
 - 병합하지 않은 브랜치의 작업은 심사에 반영되지 않습니다.
 
 ## 마감

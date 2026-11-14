@@ -1,9 +1,10 @@
 # 배포
 
-`main`에 push하면 GitHub Actions(`.github/workflows/deploy.yml`)가 EC2에서 `deploy/deploy.sh`를 실행합니다.
+PR에서는 `.github/workflows/ci.yml`이 백엔드 테스트, 프론트 빌드, Docker 이미지 빌드를 검사하고, `main`에 병합되면 GitHub Actions(`.github/workflows/deploy.yml`)가 EC2에서 `deploy/deploy.sh`를 실행해 배포합니다.
 
 ```
-main push → GitHub Actions → (OIDC로 AWS 임시 권한) → SSM 명령 → EC2: deploy/deploy.sh
+PR → ci.yml (backend / frontend / docker 검사)
+main 병합 → GitHub Actions → (OIDC로 AWS 임시 권한) → SSM 명령 → EC2: deploy/deploy.sh
 사용자 ──HTTPS──> CloudFront ──HTTP──> EC2 (Docker Compose: app + db) ──> S3, Claude API
 ```
 
@@ -15,7 +16,8 @@ main push → GitHub Actions → (OIDC로 AWS 임시 권한) → SSM 명령 → 
 | 서버 | EC2 `t3.small`, Amazon Linux 2023, Docker Compose |
 | 서버 경로 | 코드 `/opt/shingomate/repo`, 환경변수 `/opt/shingomate/.env` |
 | 사진 저장 | S3 비공개 버킷 (EC2의 IAM 역할로 접근) |
-| HTTPS | CloudFront 기본 도메인 |
+| 서비스 주소 | `https://www.room2ate.cloud` (CloudFront 기본 주소 `https://d2b992irefoevf.cloudfront.net`도 동작) |
+| HTTPS | CloudFront |
 | 서버 접속 | SSM Session Manager (SSH 포트는 열지 않음) |
 
 인스턴스 ID, 배포용 역할 ARN, 리전은 GitHub 레포의 Variables에 있습니다(`EC2_INSTANCE_ID`, `AWS_DEPLOY_ROLE_ARN`, `AWS_REGION`). GitHub에는 비밀 값을 저장하지 않습니다.
