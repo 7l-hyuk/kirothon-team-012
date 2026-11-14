@@ -448,6 +448,15 @@ def test_analysis_prompt_describes_photo_numbers_and_hides_injection_attempts(cl
     assert "언급하지 않습니다" in system  # 지시문이 있었다는 사실을 응답 문구에 쓰지 않음
 
 
+def test_analysis_prompt_forbids_photo_requests_in_summary(client, headers, ai):
+    analyze(client, headers, ai)
+    system = ai.calls[0]["system"]
+    assert "보이거나 사용자가 말한 상황과 판단 결과만" in system
+    assert "사진을 올려 달라, 더 찍어 달라, 다시 보내 달라는 부탁" in system
+    assert "필요한 사진은 다음 단계에서 화면이 따로 안내합니다" in system
+    assert "말씀하신 내용으로 보면" in system  # 글만 받았을 때 근거만 밝힘
+
+
 # ---------------------------------------------------------------- 문구 대필
 def test_draft_is_saved_and_receives_context(client, headers, ai):
     _, reports = setup_reports(client, headers, ai)
