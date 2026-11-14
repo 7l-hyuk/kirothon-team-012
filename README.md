@@ -2,7 +2,7 @@
 
 길에서 불법주정차나 쓰레기 무단투기를 보고도 "이게 신고가 되나, 어디에 하나" 몰라서 지나치는 사람에게, 사진 한 장으로 신고 가능 여부를 알려 주고 반려되지 않게 증거 준비와 접수 과정을 끝까지 안내하는 AI 어시스턴스입니다.
 
-**Demo:** https://www.room2ate.cloud (배포된 서비스. 휴대폰 브라우저에서 열면 카메라로 바로 촬영할 수 있습니다)
+**Demo:** https://www.room2ate.cloud
 
 ---
 
@@ -97,6 +97,16 @@
 
 ## 6. 설치와 실행
 
+### 바로 써 보기
+
+설치 없이 아래 주소를 열면 됩니다. 가입도 필요 없습니다.
+
+| 주소 | 내용 |
+|---|---|
+| https://www.room2ate.cloud | 서비스. 휴대폰 브라우저에서 열면 카메라로 바로 촬영할 수 있습니다 |
+| https://www.room2ate.cloud/docs | API 문서. 브라우저에서 직접 호출해 볼 수 있습니다 |
+| https://www.room2ate.cloud/api/health | 서버 상태 |
+
 ### 기술 스택
 
 | 영역 | 사용 기술 |
@@ -110,7 +120,7 @@
 | 배포 | AWS EC2 1대에 Docker Compose (FastAPI + PostgreSQL), HTTPS는 CloudFront |
 | CI/CD | GitHub Actions. PR마다 테스트와 빌드 검사, `main` 병합 시 자동 배포 |
 
-### 실행 방법
+### 로컬에서 실행하기
 
 Python 3.13 이상, [uv](https://docs.astral.sh/uv/), Node.js 24, Docker가 필요합니다.
 
