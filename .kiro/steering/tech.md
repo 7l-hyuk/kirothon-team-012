@@ -24,7 +24,7 @@ Python을 3.13으로 정한 이유는 psycopg 등 바이너리 휠 호환입니�
 - Anthropic 공식 Python SDK(`anthropic`)만 씁니다. `requests`/`httpx`로 직접 호출하거나 OpenAI 호환 방식을 쓰지 않습니다.
 - 모델 ID는 환경변수 `CLAUDE_MODEL`로 받고 기본값은 `claude-opus-5-5`입니다. 날짜 접미사를 붙이지 않습니다. 코드에 모델 ID를 하드코딩하지 않습니다.
 - 사진은 base64 image 콘텐츠 블록으로 보냅니다.
-- 응답은 구조화 출력으로 받습니다. Pydantic 모델과 `client.messages.parse()`를 쓰고, 예전 `output_format` 파라미터는 쓰지 않습니다.
+- 응답은 구조화 출력으로 받습니다. `client.messages.parse(..., output_format=<Pydantic 모델>)`을 쓰고 결과는 `response.parsed_output`으로 읽습니다. 금지하는 것은 `messages.create()`에 `output_format`을 넘기던 예전 방식이고, `parse()`의 `output_format` 인자는 현재 방식이라 씁니다.
 - `temperature`, `top_p`, `top_k`, `budget_tokens`, assistant prefill, 강제 `tool_choice`(`any`/`tool`)는 쓰지 않습니다. 현재 모델에서 400 오류가 납니다.
 - 응답 본문을 읽기 전에 `stop_reason`을 확인합니다. `refusal`이면 본문을 파싱하지 말고 사용자에게 "다시 시도해 주세요"라고 안내합니다.
 - SDK의 함수 이름과 시그니처는 추측하지 않습니다. 공식 문서(https://platform.claude.com/docs)에서 확인한 뒤 씁니다. 확인하지 못했으면 코드에 `TODO(verify)`를 남기고 사용자에게 알립니다.
