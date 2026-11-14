@@ -70,8 +70,6 @@ svg { flex: none; }
 .stepper .st-label.ghost { visibility: hidden; }
 .stepper .st-dot { position: relative; }
 .stepper .st-under { position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 12px; font-weight: 700; color: var(--ink); pointer-events: none; }
-.stepper .st-under.first { left: 0; transform: none; }
-.stepper .st-under.last { left: auto; right: 0; transform: none; }
 /* 얇은 막대: 평소에는 숨기고 compact일 때만 */
 .stepper .st-bar { display: flex; gap: 3px; width: 100%; max-width: 300px; max-height: 0; opacity: 0; overflow: hidden; transition: max-height .25s ease, opacity .2s ease; }
 .stepper .st-bar i { flex: 1; height: 4px; border-radius: 2px; background: var(--line-strong); transition: background .25s; }
@@ -236,7 +234,6 @@ button.list-card:active { transform: scale(.99); }
 .done-check { width: 84px; height: 84px; border-radius: 50%; background: var(--card); box-shadow: var(--shadow-strong); display: grid; place-items: center; color: var(--navy); }
 .receipt { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
 .receipt + .receipt { border-top: 1px solid var(--line); }
-.copy-btn { flex: none; min-height: 32px; padding: 0 10px; border-radius: 8px; background: var(--navy-soft); color: var(--navy); font-size: 12px; font-weight: 700; }
 
 /* ── S15 도움말 ───────────────────────────────── */
 .flow-steps { display: flex; flex-direction: column; gap: 0; padding: 16px; }
@@ -306,3 +303,16 @@ button.list-card:active { transform: scale(.99); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
+
+/* 신고 문구 상자: 글자 수와 복사 아이콘 */
+.draft-box { display: flex; flex-direction: column; gap: 6px; }
+.draft-foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; background: var(--navy-soft); color: var(--navy); }
+
+/* 신고 조회 목록: 이어서 하기를 카드 안에 둔다 */
+.item-box { display: flex; flex-direction: column; background: var(--card); border-radius: var(--r-lg); box-shadow: var(--shadow); border: 1px solid rgba(37,72,138,.05); }
+.item-box .item { box-shadow: none; border: 0; background: none; }
+.item-resume { align-self: stretch; margin: 0 12px 12px; }
+
+/* 위아래 여유가 필요한 버튼 */
+.btn-roomy { height: 56px; margin-block: 4px; }

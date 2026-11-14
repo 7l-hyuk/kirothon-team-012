@@ -366,9 +366,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (a.url) window.open(a.url, "_blank", "noopener");
       gNext();
     } else if (a.kind === "copy_text") {
-      const text = cur.draftText || a.text || "";
-      if (!text) return;
-      try { await navigator.clipboard.writeText(text); toast("글을 복사했어요"); } catch { toast("글을 길게 눌러 복사해 주세요"); return; }
+      if (!(cur.draftText || a.text)) return;
       gNext();
     } else if (a.kind === "save_photos") {
       const ok = await savePhotos(a.photos ?? []);

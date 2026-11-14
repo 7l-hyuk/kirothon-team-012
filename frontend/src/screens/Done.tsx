@@ -10,16 +10,11 @@ import { Check, Doc, Share } from "../components/icons/Icons";
 const NONE = "입력 안 함";
 
 export function Done() {
-  const { s, openShare, toast, toLanding } = useStore();
+  const { s, openShare, toLanding } = useStore();
   const n = s.finished.length;
   const nav = useNavigate();
   // 접수처는 접수 안내(GET /guide)의 channel에서 가져온다.
   const items = s.finished.map((f) => ({ type: f.label, kind: f.category === "report" ? "신고" : "민원", to: f.to, no: f.receipt || NONE }));
-
-  const copy = (no: string) => {
-    navigator.clipboard?.writeText(no).catch(() => {});
-    toast("접수번호를 복사했어요");
-  };
 
   return (
     <div className="page">
@@ -42,14 +37,13 @@ export function Done() {
                 <div className="xs sub">{d.to}</div>
                 <div className="small">접수번호 <span className={d.no === NONE ? "sub" : "strong"}>{d.no}</span></div>
               </div>
-              {d.no !== NONE && <button className="copy-btn" onClick={() => copy(d.no)}>복사</button>}
             </div>
           ))}
         </div>
 
         <div className="panel">
           <div className="small" style={{ textWrap: "pretty" }}>이 경험을 다른 사람에게 알려 주시겠어요? 개인정보는 지우고 공유돼요.</div>
-          <button className="btn btn-outline btn-sm" disabled={!s.finished.length} onClick={() => s.finished[0] && openShare(s.finished[0].id, "/done")}><Share size={16} />사례로 공유하기</button>
+          <button className="btn btn-outline btn-roomy" disabled={!s.finished.length} onClick={() => s.finished[0] && openShare(s.finished[0].id, "/done")}><Share size={16} />사례로 공유하기</button>
         </div>
 
         <div className="col" style={{ marginTop: "auto" }}>
