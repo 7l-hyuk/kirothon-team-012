@@ -19,6 +19,14 @@ COMMON_RULES = """\
 - 이 서비스는 참고용 안내이며, 최종 판단은 담당 기관이 합니다."""
 
 
+ZONE_RULES = """\
+주정차 금지구역 판단 기준
+- 6대 금지구역(소화전, 교차로 모퉁이, 버스정류소, 횡단보도, 어린이보호구역, 인도)에 해당하면 그 구역을 고릅니다. 다른 기준보다 우선합니다.
+- 6대 금지구역이 아니어도, 도로 가장자리의 황색 실선·황색 복선 위나 주정차금지 표지가 있는 구간에 세운 차는 zone=no_parking_zone으로 신고할 수 있습니다.
+- 아파트 단지 안 같은 사유지이거나 금지 표시가 전혀 보이지 않는 곳은 지금처럼 신고할 수 없거나 판단하기 어렵습니다. 보이지 않는 표시를 있다고 하지 않습니다.
+- no_parking_zone은 지자체마다 기준이 달라, 주민 신고만으로 과태료가 부과된다고 단정하지 않습니다."""
+
+
 def render_procedure(proc: Procedure) -> str:
     """프롬프트에 넣을 절차 데이터 한 유형. 판단에 필요한 값만 추립니다."""
     kind = "신고" if proc.category == "report" else "민원"
@@ -39,7 +47,7 @@ def render_procedure(proc: Procedure) -> str:
             f"  - scene_id={s.scene_id} | {s.label} | {need} | 통과 기준: {s.pass_criteria} | 재촬영 안내: {s.retake_tip}"
         )
     if proc.zones:
-        lines.append("- 6대 금지구역(zone):")
+        lines.append("- 주정차 금지구역(zone):")
         for z in proc.zones:
             lines.append(f"  - zone={z.zone_id} | {z.label}")
     return "\n".join(lines)
@@ -57,11 +65,13 @@ def analysis_system(procs: dict[str, Procedure]) -> str:
 
 {COMMON_RULES}
 
+{ZONE_RULES}
+
 판단 방법
 1. items: 아래 절차 데이터의 유형 중, 사진이나 글에서 실제로 신고할 수 있는 것만 넣습니다. '신고할 수 있는 경우'에 해당하고 '신고할 수 없는 경우'에는 해당하지 않아야 해요. 같은 유형은 한 번만 넣습니다. 잘 모르겠으면 넣지 않습니다.
    - reason: 왜 신고가 되는지 해요체 한두 문장. 절차 데이터의 조건에 근거해서 씁니다.
    - label: 문제 이름을 짧게 씁니다.
-   - zone: type_id가 illegal_parking인 항목에서만 6대 금지구역 중 하나를 고릅니다. 그 밖의 항목이거나 어느 구역인지 모르면 null입니다.
+   - zone: type_id가 illegal_parking인 항목에서만 주정차 금지구역 중 하나를 고릅니다. 그 밖의 항목이거나 어느 구역인지 모르면 null입니다. 구역은 위 '주정차 금지구역 판단 기준'을 따릅니다. no_parking_zone이면 reason에 "주민 신고만으로 과태료가 부과돼요"라고 단정하지 않고, 지자체마다 기준이 다를 수 있다고 씁니다.
    - satisfied_scenes: photo_numbers와 별개로 채웁니다. 그 유형의 증거 장면을 하나씩 모두 검토해서, 올린 사진이 그 장면의 '통과 기준'을 채우면 반드시 {{scene_id, photo_number(사진 번호, 1부터), message(왜 충분한지 해요체 한 줄)}}로 넣습니다. 통과 기준에 적힌 것이 사진에 분명히 보이면 넣습니다. 통과 기준을 채우지 못하거나 사진만으로 판단할 수 없을 때만 뺍니다. photo_numbers에 사진을 넣었다고 해서 satisfied_scenes를 비우지 않습니다. illegal_parking은 본촬영을 안전신문고 앱에서 하므로 항상 빈 목록입니다.
    - photo_numbers: 그 문제가 실제로 '보이는' 사진 번호 목록(1부터)입니다. 증거 장면을 채우는지는 여기서 판단하지 않고 satisfied_scenes에서 판단합니다. 예: 쓰레기가 사진 1에만, 주차된 차가 사진 2와 3에 보이면 쓰레기 항목은 [1], 불법주정차 항목은 [2, 3]입니다. 어느 사진에서도 보이지 않으면(글로만 알게 된 경우) 빈 목록입니다.
 2. unsupported_items: 사진이나 글에 보이지만 위 4개 유형에 속하지 않는 문제(예: 낙서)입니다. label만 짧게 씁니다. 이 문제는 items에 넣지 않습니다. 다른 기관이나 신고 방법을 추측해 안내하지 않습니다.
@@ -120,10 +130,12 @@ def rehearsal_system(proc: Procedure) -> str:
 
 {COMMON_RULES}
 
+{ZONE_RULES}
+
 점검 항목 (모두 ReviewStatus: sufficient / insufficient / undetermined)
-1. zone, zone_status, zone_detail: 사진 속 차량이 6대 금지구역 중 어디에 있는지 판정합니다.
+1. zone, zone_status, zone_detail: 사진 속 차량이 주정차 금지구역 중 어디에 있는지 판정합니다. 기준은 위 '주정차 금지구역 판단 기준'을 따릅니다.
    - 금지구역이 분명하면 zone에 구역을 넣고 zone_status는 sufficient입니다.
-   - 금지구역이 아니거나 사유지(예: 아파트 단지 안)로 보이면 zone은 null, zone_status는 insufficient입니다.
+   - 금지구역이 아니거나, 사유지(예: 아파트 단지 안)로 보이거나, 금지 표시가 전혀 보이지 않으면 zone은 null, zone_status는 insufficient입니다.
    - 사진만으로 알 수 없으면 zone은 null, zone_status는 undetermined입니다.
    - sufficient가 아니면 zone_detail에 이유를 해요체 한두 문장으로 씁니다.
 2. plate_readable, plate_detail: 번호판이 식별되는지 봅니다. 번호판의 글자·숫자는 절대 옮겨 적지 않습니다. sufficient가 아니면 plate_detail에 어떻게 찍어야 하는지 씁니다.

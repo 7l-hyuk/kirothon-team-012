@@ -192,7 +192,7 @@ def test_not_reportable_when_ai_finds_no_item(client, headers, ai):
         unsupported_items=[],
         not_reportable=NotReportableOut(
             message="아파트 단지 안 주차장은 사유지라 주민신고 대상이 아니에요. 관리사무소에 문의해 보세요.",
-            basis="주민신고는 도로 위 6대 금지구역에만 적용돼요.",
+            basis="주민신고는 도로 위 6대 금지구역과 황색 실선·주정차금지 표지 구간에 적용돼요.",
         ),
     )
     body = analyze(client, headers, ai, out=out, text="아파트 지하주차장 이중주차").json()
@@ -350,6 +350,54 @@ def test_rehearsal_is_assembled_with_capture_guide(client, headers, ai):
     # 분석 때 올린 사진을 AI에 보냈어요.
     assert ai.calls[-1]["messages"][0]["content"][0]["type"] == "image"
     assert ai.calls[-1]["output_format"] is RehearsalOutput
+
+
+def test_analysis_assembles_no_parking_zone_item(client, headers, ai):
+    base = analysis_a()
+    parking = base.items[0].model_copy(
+        update={"zone": "no_parking_zone", "reason": "황색 복선 위에 세운 차라 신고할 수 있어요. 기준은 지자체마다 달라요."}
+    )
+    body = analyze(client, headers, ai, out=analysis_a(items=[parking])).json()
+    assert body["reportable"] is True
+    item = body["items"][0]
+    assert item["type_id"] == "illegal_parking"
+    assert item["label"] == "불법주정차 (주정차 금지구역)"
+    assert item["detail"] == {"zone": "no_parking_zone"}
+
+
+def test_prompts_describe_no_parking_zone_rules(client, headers, ai):
+    analyze(client, headers, ai)
+    system = ai.calls[0]["system"]
+    assert "- 주정차 금지구역(zone):" in system and "zone=no_parking_zone | 주정차 금지구역" in system
+    assert "- 6대 금지구역(zone):" not in system
+    assert "황색 실선·황색 복선 위나 주정차금지 표지가 있는 구간" in system
+    assert "6대 금지구역(소화전, 교차로 모퉁이, 버스정류소, 횡단보도, 어린이보호구역, 인도)에 해당하면 그 구역을 고릅니다" in system
+    assert "사유지" in system and "금지 표시가 전혀 보이지 않는 곳" in system
+
+
+def test_rehearsal_no_parking_zone_is_assembled_and_prompted(client, headers, ai):
+    _, reports = setup_reports(client, headers, ai)
+    parking = next(r for r in reports if r["type_id"] == "illegal_parking")
+    ai.reply(_rehearsal_out(zone="no_parking_zone", background_included="sufficient", background_detail=None))
+    r = client.post(f"/api/reports/{parking['id']}/rehearsals", json={}, headers=headers)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["passed"] is True and body["zone"] == "no_parking_zone"
+    assert body["checks"][0]["status"] == "sufficient"
+    assert body["checks"][0]["label"] == "금지구역: 주정차 금지구역"
+    assert body["capture_guide"]["steps"][0] == "차량 뒤쪽에서 번호판과 황색 실선 또는 주정차금지 표지가 함께 나오게 1장"
+    assert body["capture_guide"]["interval_seconds"] == 60
+    system = ai.calls[-1]["system"]
+    assert "주정차 금지구역 판단 기준" in system and "zone=no_parking_zone" in system
+    assert "6대 금지구역 중 어디" not in system
+
+
+def test_rehearsal_fallback_mentions_marked_sections(client, headers, ai):
+    _, reports = setup_reports(client, headers, ai)
+    parking = next(r for r in reports if r["type_id"] == "illegal_parking")
+    ai.reply(_rehearsal_out(zone=None, zone_status="insufficient", zone_detail=None))
+    body = client.post(f"/api/reports/{parking['id']}/rehearsals", json={}, headers=headers).json()
+    assert "황색 실선·주정차금지 표지 구간" in body["checks"][0]["detail"]
 
 
 def test_rehearsal_passed_and_school_zone_interval(client, headers, ai):

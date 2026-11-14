@@ -9,7 +9,7 @@ Category = Literal["report", "complaint"]
 ReportStatus = Literal["preparing", "filed", "resolved"]
 ResultValue = Literal["accepted", "rejected", "unknown"]
 ReviewStatus = Literal["sufficient", "insufficient", "undetermined"]
-Zone = Literal["fire_hydrant", "intersection_corner", "bus_stop", "crosswalk", "school_zone", "sidewalk"]
+Zone = Literal["fire_hydrant", "intersection_corner", "bus_stop", "crosswalk", "school_zone", "sidewalk", "no_parking_zone"]
 
 
 class PhotoRef(BaseModel):

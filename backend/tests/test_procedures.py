@@ -36,7 +36,12 @@ def test_parking_data_has_zones_and_capture_rules():
         "crosswalk",
         "school_zone",
         "sidewalk",
+        "no_parking_zone",
     ]
+    nz = p.zone("no_parking_zone")
+    assert nz is not None and nz.label == "주정차 금지구역" and nz.interval_seconds == 60
+    assert nz.first_shot_tip == "번호판과 황색 실선 또는 주정차금지 표지가 함께 나오게" and nz.verified is False
+    assert "황색 실선·주정차금지 표지 구간" in p.eligibility.basis
     assert p.capture_rules.same_position_required is True and p.capture_rules.photo_count_min == 2
     assert p.rehearsal_checks == ["zone", "plate_readable", "background_included"]
     assert procedures.subtitle(p) == "과태료 부과 대상 · 안전신문고"
