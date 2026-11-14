@@ -40,7 +40,6 @@ from app.services.store import SceneMatch
 
 UNSUPPORTED_MESSAGE = "아직 안내하지 못하는 유형이에요"
 NOT_REPORTABLE_TITLE = "신고가 어려운 상황이에요"
-LOCATION_PLACEHOLDER = "[위치를 적어 주세요]"
 
 
 def _clean(value: str | None) -> str | None:
@@ -351,15 +350,13 @@ def make_draft(session: Session, device_id: str, rec: Report, tone: Tone) -> Dra
         zone_label=zone_def.label if zone_def else None,
         summary=analysis.summary,
         reason=item.reason if item else None,
-        location=rec.location.address or LOCATION_PLACEHOLDER,
+        location=rec.location.address,
         when=_fmt_when(analysis.created_at),
         tone=tone,
     )
     text = out.text.strip()
     if not text:
         raise ai_unavailable()
-    if not rec.location.address and LOCATION_PLACEHOLDER not in text:
-        text = f"{LOCATION_PLACEHOLDER} {text}"  # 위치를 모르면 자리표시가 반드시 들어가게 합니다.
     rec.draft_text = text
     session.add(rec)
     session.commit()

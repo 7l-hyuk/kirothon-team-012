@@ -155,7 +155,7 @@ def draft_system(procs: dict[str, Procedure]) -> str:
 문구 작성 규칙
 - 이 문구만 합니다체('~습니다', '~요청드립니다')로 씁니다. 해요체를 쓰지 않습니다.
 - 위치, 확인한 일시, 상황, 요청 사항을 담습니다. 입력에 없는 사실(이름, 연락처, 피해 정도, 과태료 금액 등)을 지어내지 않습니다.
-- 위치는 입력의 '위치' 값을 그대로 씁니다. 값이 [위치를 적어 주세요]이면 그 글자를 바꾸지 않고 문구에 그대로 넣습니다.
+- 위치는 입력의 '위치' 값을 그대로 씁니다. '위치'가 없으면 사용자가 안전신문고에서 발생 지역을 직접 고르므로, 위치를 쓰지 않고 자리표시도 넣지 않습니다.
 - 확인 일시는 '2026년 11월 14일 오후 2시경'처럼 시각을 시 단위로 어림해서 씁니다.
 - 번호판의 글자·숫자와 사람의 얼굴, 이름은 쓰지 않습니다.
 - 요청 사항은 유형에 맞게 씁니다. 불법주정차는 확인과 조치, 나머지는 수거·제거·보수 등 처리와 단속을 요청합니다.
@@ -174,14 +174,15 @@ def draft_user_text(
     zone_label: str | None,
     summary: str,
     reason: str | None,
-    location: str,
+    location: str | None,
     when: str,
     tone: str,
 ) -> str:
     lines = [f"유형: {label} (type_id={type_id})"]
     if zone_label:
         lines.append(f"금지구역: {zone_label}")
-    lines.append(f"위치: {location}")
+    if location:
+        lines.append(f"위치: {location}")
     lines.append(f"확인 일시: {when}")
     lines.append(f"상황 요약: {summary}")
     if reason:
