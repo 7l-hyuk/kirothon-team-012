@@ -1,4 +1,4 @@
-"""신고메이트 FastAPI 앱. 지금은 가짜(mock) API만 붙어 있습니다."""
+"""신고메이트 FastAPI 앱. ANTHROPIC_API_KEY가 없으면 가짜(mock) 응답, 있으면 Claude를 호출합니다."""
 
 from pathlib import Path
 
@@ -6,32 +6,36 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 
 from app import db
-from app.config import get_settings
+from app.config import get_settings, is_mock
 from app.errors import ApiError, ErrorCode, register_error_handlers
-from app.routers import analyses, assets, reports
+from app.routers import analyses, assets, photos, procedures, reports
+from app.services import procedures as procedure_data
 
 
 def create_app(static_dir: str | Path | None = None) -> FastAPI:
     static_root = Path(static_dir or get_settings().static_dir)
+    procedure_data.load_procedures()  # 절차 데이터 형식이 틀리면 여기서 시작을 멈춥니다.
 
-    app = FastAPI(title="신고메이트 API (mock)", version="0.1.0")
+    app = FastAPI(title="신고메이트 API", version="0.2.0")
     register_error_handlers(app)
 
     @app.middleware("http")
     async def add_mock_header(request: Request, call_next):
         response = await call_next(request)
-        if request.url.path.startswith("/api"):
+        if request.url.path.startswith("/api") and is_mock():  # 가짜로 응답했을 때만 붙입니다.
             response.headers["X-Mock"] = "true"
         return response
 
     app.include_router(analyses.router)
     app.include_router(reports.router)
+    app.include_router(procedures.router)
+    app.include_router(photos.router)
     app.include_router(assets.router)
 
     @app.get("/api/health")
     def health() -> dict[str, str | bool]:
         # DB가 죽어 있어도 200입니다. 배포 스크립트의 상태 확인이 DB 때문에 막히지 않게 합니다.
-        return {"status": "ok", "db": "ok" if db.check_db() else "unavailable", "mock": True}
+        return {"status": "ok", "db": "ok" if db.check_db() else "unavailable", "mock": is_mock()}
 
     if (static_root / "index.html").is_file():
         root = static_root.resolve()

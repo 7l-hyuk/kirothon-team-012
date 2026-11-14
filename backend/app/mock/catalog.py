@@ -15,6 +15,7 @@ class SceneDef:
     insufficient_message: str
     retake_tip: str
     prefill_from_analysis: bool = False  # 분석 때 올린 사진으로 처음부터 충족
+    required: bool = True
 
 
 @dataclass(frozen=True)

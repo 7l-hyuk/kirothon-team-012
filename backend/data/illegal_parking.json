@@ -1,0 +1,127 @@
+{
+  "type_id": "illegal_parking",
+  "label": "불법주정차",
+  "category": "report",
+  "agency": null,
+  "outcome_note": "과태료 부과 대상",
+  "channel": {
+    "name": "안전신문고",
+    "web_url": "https://www.safetyreport.go.kr",
+    "menu_path": ["불법 주정차 신고"]
+  },
+  "eligibility": {
+    "reportable_when": [
+      "도로 위 6대 금지구역(소화전, 교차로 모퉁이, 버스정류소, 횡단보도, 어린이보호구역, 인도)에 주정차한 차량"
+    ],
+    "not_reportable_when": [
+      {
+        "reason": "아파트 단지 안 주차장처럼 사유지라 주민신고 대상이 아니에요",
+        "advice": "관리사무소에 문의해 보세요"
+      }
+    ],
+    "basis": "주민신고는 도로 위 6대 금지구역(소화전, 교차로 모퉁이, 버스정류소, 횡단보도, 어린이보호구역, 인도)에만 적용돼요."
+  },
+  "evidence_scenes": [
+    {
+      "scene_id": "vehicle",
+      "label": "번호판과 주변 배경이 보이는 사진",
+      "required": true,
+      "pass_criteria": "같은 위치와 방향에서 찍은 사진이고, 차량 번호판이 식별되며, 주변 배경(경계석, 표지, 건물 등)이 함께 보인다",
+      "retake_tip": "차량 뒤쪽에서 번호판과 주변 배경이 함께 나오게 찍어 주세요."
+    }
+  ],
+  "capture_rules": {
+    "photo_count_min": 2,
+    "interval_seconds": 60,
+    "same_position_required": true,
+    "interval_note": "어린이보호구역은 5분 간격이 필요할 수 있어요"
+  },
+  "zones": [
+    { "zone_id": "fire_hydrant", "label": "소화전", "interval_seconds": 60, "first_shot_tip": "번호판과 소화전이 함께 나오게", "verified": true },
+    { "zone_id": "intersection_corner", "label": "교차로 모퉁이", "interval_seconds": 60, "first_shot_tip": "번호판과 교차로 모퉁이가 함께 나오게", "verified": true },
+    { "zone_id": "bus_stop", "label": "버스정류소", "interval_seconds": 60, "first_shot_tip": "번호판과 버스정류소 표지가 함께 나오게", "verified": true },
+    { "zone_id": "crosswalk", "label": "횡단보도", "interval_seconds": 60, "first_shot_tip": "번호판과 횡단보도가 함께 나오게", "verified": true },
+    { "zone_id": "school_zone", "label": "어린이보호구역", "interval_seconds": 300, "first_shot_tip": "번호판과 어린이보호구역 표지가 함께 나오게", "verified": false },
+    { "zone_id": "sidewalk", "label": "인도", "interval_seconds": 60, "first_shot_tip": "번호판과 인도 경계석이 함께 나오게", "verified": true }
+  ],
+  "rehearsal_checks": ["zone", "plate_readable", "background_included"],
+  "capture_guide": {
+    "title": "안전신문고 앱에서 이렇게 찍으세요",
+    "steps": [
+      "차량 뒤쪽에서 {first_shot} 1장",
+      "그 자리에서 움직이지 말고 {interval_label} 기다리기",
+      "같은 위치, 같은 방향으로 1장 더"
+    ],
+    "warning": "앞에서 1장, 옆에서 1장은 반려돼요."
+  },
+  "steps": [
+    {
+      "step_id": "open_site",
+      "order": 1,
+      "title": "안전신문고에 접속하세요",
+      "body": "safetyreport.go.kr 또는 안전신문고 앱을 열어요.",
+      "action": { "kind": "open_link", "button_label": "안전신문고 열기" },
+      "reusable": true,
+      "verified": false
+    },
+    {
+      "step_id": "login",
+      "order": 2,
+      "title": "안전신문고에 로그인하세요",
+      "body": "회원이 아니면 본인인증 후 비회원 신고도 할 수 있어요. (확인 필요)",
+      "action": { "kind": "confirm", "button_label": "했어요" },
+      "reusable": true,
+      "verified": false
+    },
+    {
+      "step_id": "select_menu",
+      "order": 3,
+      "title": "메뉴를 아래 순서로 선택하세요",
+      "action": { "kind": "confirm", "button_label": "했어요" },
+      "reusable": false,
+      "verified": false
+    },
+    {
+      "step_id": "attach_photos",
+      "order": 4,
+      "title": "안전신문고 앱에서 사진 2장을 찍으세요",
+      "body": "같은 위치, 같은 방향에서 간격을 두고 찍어요. 앞에서 1장, 옆에서 1장은 반려돼요. 안전신문고 앱 안에서 찍은 사진만 인정될 수 있어요. (확인 필요)",
+      "action": { "kind": "confirm", "button_label": "했어요" },
+      "reusable": false,
+      "verified": false
+    },
+    {
+      "step_id": "set_location",
+      "order": 5,
+      "title": "위치를 확인하세요",
+      "body": "발생 위치는 지도에서 현재 위치를 확인해요.",
+      "action": { "kind": "confirm", "button_label": "했어요" },
+      "reusable": true,
+      "verified": false
+    },
+    {
+      "step_id": "fill_content",
+      "order": 6,
+      "title": "내용 항목에 아래 글을 붙여 넣으세요",
+      "action": { "kind": "copy_text", "button_label": "글 복사" },
+      "reusable": false,
+      "verified": false
+    },
+    {
+      "step_id": "submit",
+      "order": 7,
+      "title": "접수 버튼을 눌러 마무리하세요",
+      "body": "접수번호가 나오면 적어 두세요. 내 신고에서 입력할 수 있어요.",
+      "action": { "kind": "submit", "button_label": "접수 완료" },
+      "reusable": false,
+      "verified": false
+    }
+  ],
+  "input_fields": [
+    { "field_id": "photos", "label": "사진", "kind": "in_app_capture" },
+    { "field_id": "location", "label": "발생 위치", "kind": "location" },
+    { "field_id": "content", "label": "내용", "kind": "draft_text" }
+  ],
+  "verified": false,
+  "source_note": "기획서(2026-11-14) 기준. 구역 목록과 1분 간격은 구리시·금천구 안내, 어린이보호구역 5분 간격은 미확인. 메뉴 이름은 안전신문고 화면과 대조하지 못함. 구역별 first_shot_tip은 팀이 정한 안내 문구."
+}
