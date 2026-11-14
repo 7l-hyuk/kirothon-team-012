@@ -7,7 +7,7 @@ inclusion: always
 ## 스택
 | 영역 | 기술 |
 |---|---|
-| 백엔드 | Python 3.14, FastAPI, 패키지 관리는 uv |
+| 백엔드 | Python 3.13 이상(배포 이미지는 `python:3.13-slim`), FastAPI, 패키지 관리는 uv |
 | 프론트엔드 | React, Vite, TypeScript, Tailwind CSS (Node.js 24) |
 | AI | Claude, Anthropic 공식 Python SDK(`anthropic`) |
 | DB | PostgreSQL + SQLModel (드라이버 psycopg) |
@@ -15,6 +15,8 @@ inclusion: always
 | 신고 절차 데이터 | `backend/data/*.json` |
 | 사용자 구분 | 로그인 없음. 익명 기기 ID |
 | 배포 | AWS EC2 1대 + Docker Compose(`app`, `db`) + CloudFront. 자세한 내용은 "배포" 절 |
+
+Python을 3.13으로 정한 이유는 psycopg 등 바이너리 휠 호환입니다.
 
 정확한 패키지 버전은 `backend/pyproject.toml`과 `frontend/package.json`이 기준입니다. 이 문서에 버전을 따로 적지 않습니다.
 
