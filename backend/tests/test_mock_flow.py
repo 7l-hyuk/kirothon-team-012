@@ -113,6 +113,23 @@ def test_full_flow(client, headers):
     assert client.get(f"/api/reports/{r2['id']}/evidence", headers=headers).json()["complete"] is True
 
 
+def test_rehearsal_needs_photo_in_mock_mode(client, headers):
+    a = _analyze(client, headers, with_photo=False)  # 글만 있는 분석
+    (parking,) = _make_reports(client, headers, a, ["illegal_parking"])
+    url = f"/api/reports/{parking['id']}/rehearsals"
+    r = client.post(url, json={}, headers=headers)
+    assert r.status_code == 422 and r.json()["code"] == "validation_error"
+    assert r.json()["detail"] == "사전 점검에는 사진이 필요해요. 사진을 먼저 올려 주세요."
+    assert client.get(f"/api/reports/{parking['id']}/evidence", headers=headers).json()["complete"] is False
+
+    up = client.post(f"/api/reports/{parking['id']}/photos", files={"photo": JPEG}, headers=headers)
+    assert up.status_code == 201
+    ok = client.post(url, json={"photo_id": up.json()["photo"]["id"]}, headers=headers)
+    assert ok.status_code == 200
+    assert ok.json()["zone"] == "sidewalk"
+    assert client.get(f"/api/reports/{parking['id']}/evidence", headers=headers).json()["complete"] is True
+
+
 def test_report_state_transitions(client, headers):
     a = _analyze(client, headers)
     r1, r2 = _make_reports(client, headers, a, ["trash_dumping", "illegal_parking"])

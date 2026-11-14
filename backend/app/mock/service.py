@@ -44,6 +44,7 @@ from app.schemas.reports import (
     SceneReview,
     TimelineEntry,
 )
+from app.services import cases as case_service
 from app.services import guide as procedure_guide
 from app.services import photos as photo_service
 from app.services import procedures, store
@@ -237,19 +238,35 @@ def upload_photo(session: Session, device_id: str, rec: Report, scene_id: str | 
     return PhotoUploadOut(photo=photo, review=review, evidence=_summary(rec))
 
 
+def select_rehearsal_photo(
+    session: Session, rec: Report, analysis_rec: AnalysisRecord, photo_id: str | None
+) -> str:
+    """사전 점검에 쓸 사진 ID를 고릅니다. 두 모드가 같이 씁니다.
+
+    요청의 photo_id → 분석에서 불법주정차가 보인 사진 → 분석의 첫 사진 순서입니다.
+    쓸 사진이 없으면 422, 요청한 사진이 이 건의 사진이 아니면 404입니다.
+    """
+    candidates = [p.id for p in analysis_rec.response.input.photos] + [p.id for p in _report_photos(session, rec)]
+    if photo_id is None:
+        if not candidates:
+            raise validation_error("사전 점검에는 사진이 필요해요. 사진을 먼저 올려 주세요.")
+        parking_photos = analysis_rec.item_photo_ids.get("illegal_parking")
+        return parking_photos[0] if parking_photos else candidates[0]
+    if photo_id not in candidates:
+        raise not_found()
+    return photo_id
+
+
 def rehearsal(session: Session, device_id: str, rec: Report, photo_id: str | None) -> RehearsalOut:
     if rec.type_id != "illegal_parking":
         raise invalid_state("불법주정차 건에서만 사전 점검을 할 수 있어요.")
-    analysis = get_analysis_record(session, device_id, rec.analysis_id).response
-    known = {p.id: p for p in analysis.input.photos}
-    known.update({p.id: PhotoRef(id=p.id, url=p.url) for p in _report_photos(session, rec)})
-    if photo_id is not None and photo_id not in known:
-        raise not_found()
-    photo = known.get(photo_id) if photo_id else (analysis.input.photos[0] if analysis.input.photos else None)
+    analysis_rec = get_analysis_record(session, device_id, rec.analysis_id)
+    analysis = analysis_rec.response
+    photo_id = select_rehearsal_photo(session, rec, analysis_rec, photo_id)
 
     scene = _scene_defs(rec)[0]  # 사전 점검을 본 것만으로 증거 단계 완료 (명세 5장)
     state = store.scene_state(rec, scene.scene_id)
-    state.photo_id = photo.id if photo else None
+    state.photo_id = photo_id
     state.review = SceneReview(status="sufficient", message=scene.sufficient_message)
     store.set_scene(rec, scene.scene_id, state)
     session.commit()
@@ -329,7 +346,7 @@ def report_out(session: Session, rec: Report) -> ReportOut:
         result_reason=rec.result_reason,
         resolved_at=rec.resolved_at,
         timeline=timeline,
-        case_id=None,  # 사례 공유는 이번 범위가 아닙니다.
+        case_id=case_service.case_id_for_report(session, rec.id),
         next_report_id=_next_report_id(session, rec),
     )
 

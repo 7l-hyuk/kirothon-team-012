@@ -270,15 +270,7 @@ def rehearsal(session: Session, device_id: str, rec: Report, photo_id: str | Non
     analysis = analysis_rec.response
     proc = procedures.get_procedure("illegal_parking")
 
-    candidates = [p.id for p in analysis.input.photos] + [p.id for p in base._report_photos(session, rec)]
-    if photo_id is None:
-        if not candidates:
-            raise validation_error("사전 점검에는 사진이 필요해요. 사진을 먼저 올려 주세요.")
-        # 불법주정차 문제가 보이는 첫 사진, 없으면 분석의 첫 사진
-        parking_photos = analysis_rec.item_photo_ids.get("illegal_parking")
-        photo_id = parking_photos[0] if parking_photos else candidates[0]
-    elif photo_id not in candidates:
-        raise not_found()
+    photo_id = base.select_rehearsal_photo(session, rec, analysis_rec, photo_id)
     record = store.get_photo(session, photo_id)
     if record is None or record.device_id != device_id or record.s3_key is None:
         raise not_found()
@@ -326,8 +318,9 @@ def rehearsal(session: Session, device_id: str, rec: Report, photo_id: str | Non
         scene = proc.evidence_scenes[0]
         state = store.scene_state(rec, scene.scene_id)
         state.photo_id = photo_id
-        state.review = SceneReview(status="sufficient", message="사전 점검을 마쳤어요")
+        state.review = SceneReview(status="sufficient", message=store.REHEARSAL_SCENE_MESSAGE)
         store.set_scene(rec, scene.scene_id, state)
+    store.set_rehearsal_checks(rec, [(c.key, c.status) for c in checks])
     session.add(rec)
     session.commit()
 
